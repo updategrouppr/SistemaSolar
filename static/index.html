@@ -97,6 +97,35 @@ nav.tabs a.on, nav.tabs a:hover { background: var(--orange); color: #fff; }
 .kpi .d.up { color: var(--good); } .kpi .d.down { color: var(--warn); }
 .spark { width: 120px; height: 46px; display: block; }
 
+
+/* ---------- Tu mes con LUMA */
+.bill { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.bill-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 6px; }
+.bill-head h2 { font-size: 1.25rem; font-weight: 800; font-stretch: 105%; }
+.mnav { display: flex; align-items: center; gap: 8px; }
+.mnav b { min-width: 9.5em; text-align: center; font-family: var(--f-display); }
+.mnav button { width: 34px; height: 34px; padding: 0; border-radius: 50%; font-size: 1rem; }
+.diagram { width: 100%; height: auto; display: block; }
+.diagram text { font-family: var(--f-body); }
+.result { border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; text-align: center; margin-top: 4px;
+  background: color-mix(in srgb, var(--good) 9%, #fff); border: 1px solid color-mix(in srgb, var(--good) 28%, var(--line)); }
+.result.neg { background: color-mix(in srgb, var(--warn) 8%, #fff); border-color: color-mix(in srgb, var(--warn) 28%, var(--line)); }
+.result b { font-family: var(--f-display); font-size: 1.35rem; font-weight: 800; }
+.result p { margin: 0; color: var(--muted); font-size: .85rem; }
+.months { display: grid; gap: 4px; }
+.months h3 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+.mrow { width: 100%; display: grid; grid-template-columns: 4.2em minmax(0, 1fr) 5.6em; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 12px; cursor: pointer; border: 1px solid transparent; background: none; text-align: left; font: inherit; }
+.mrow:hover { background: var(--panel-2); }
+.mrow.on { border-color: var(--line); background: var(--panel-2); }
+.mrow .m { font-weight: 700; text-transform: capitalize; font-size: .88rem; }
+.mrow .bars { display: grid; gap: 3px; }
+.mrow .bars { min-width: 0; }
+.mrow .bars i { display: block; height: 7px; border-radius: 4px; min-width: 2px; }
+.mrow .n { text-align: right; font-weight: 700; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.mrow .n.pos { color: var(--good); } .mrow .n.neg { color: var(--warn); }
+.note { color: var(--muted); font-size: .78rem; margin: 6px 0 0; }
+@media (max-width: 760px) { .bill { grid-template-columns: 1fr; } }
+
 /* ---------- Análisis */
 .grid-an { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; }
 .chart-card { display: grid; gap: 10px; align-content: start; }
@@ -202,7 +231,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; }
   <header>
     <a class="logo" href="https://www.updategrouppr.com" aria-label="Update Group"><img src="mark.png" alt="" width="30" height="26"><span class="wm"><b>update</b><small>GROUP</small></span></a>
     <nav class="tabs" aria-label="Secciones">
-      <a href="#resumen" class="on">Resumen</a><a href="#analisis">Análisis</a><a href="#control">Control</a>
+      <a href="#resumen" class="on">Resumen</a><a href="#mes">Mi mes</a><a href="#analisis">Análisis</a><a href="#control">Control</a>
     </nav>
     <div class="status"><span id="state" class="pill"><span class="dot"></span><span>Conectando…</span></span><span id="updated"></span></div>
   </header>
@@ -262,6 +291,26 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; }
       <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="var(--good)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/></svg>Batería</div>
       <div><div class="v num" id="kBat">–</div><div class="d" id="dBat">&nbsp;</div></div>
       <svg class="spark" id="spBat" viewBox="0 0 120 46" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <!-- ===== Tu mes con LUMA ===== -->
+  <section class="card" aria-labelledby="hBill" id="mes">
+    <div class="bill-head">
+      <div><span class="eyebrow">Para tu factura</span><h2 id="hBill" style="margin-top:6px">Tu mes con LUMA</h2></div>
+      <div class="mnav"><button type="button" id="mPrev" aria-label="Mes anterior">‹</button><b id="mName">–</b><button type="button" id="mNext" aria-label="Mes siguiente">›</button></div>
+    </div>
+    <div class="bill">
+      <div>
+        <svg class="diagram" id="diagram" viewBox="0 0 420 250" role="img" aria-labelledby="diagDesc"><desc id="diagDesc">Diagrama de lo que enviaste a LUMA y lo que tomaste de LUMA este mes.</desc></svg>
+        <div class="result" id="mResult"><b id="mResTitle">–</b><p id="mResText">Así se verá en tu factura de medición neta.</p></div>
+        <p class="note" id="mNote"></p>
+      </div>
+      <div class="months">
+        <h3>Mes por mes</h3>
+        <div id="mList"></div>
+        <p class="note"><i class="swatch" style="background:var(--s-prod)"></i> Enviado a LUMA &nbsp; <i class="swatch" style="background:var(--s-cons)"></i> Tomado de LUMA</p>
+      </div>
     </div>
   </section>
 
@@ -695,12 +744,81 @@ function drawDays(days) {
     days.slice().reverse().map(d => `<tr><td>${d.day}</td><td>${kwh(d.pv)}</td><td>${kwh(d.load)}</td><td>${kwh(d.export)}</td><td>${kwh(d.import)}</td></tr>`).join('')}</tbody></table>`;
 }
 async function loadHistory() {
-  try { HIST = await api('/api/history?days=31'); renderToday(HIST.days, HIST.curve); drawCurve(HIST.curve, HIST.day); drawDays(HIST.days.slice(-30)); } catch (e) {}
+  try { HIST = await api('/api/history?days=400'); const keep = MONTHS.length && MSEL !== MONTHS.length - 1; MONTHS = monthsFrom(HIST.days); if (!keep) MSEL = MONTHS.length - 1; renderMonth(); renderToday(HIST.days, HIST.curve); drawCurve(HIST.curve, HIST.day); drawDays(HIST.days.slice(-30)); } catch (e) {}
 }
 let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => HIST && (drawCurve(HIST.curve, HIST.day), drawDays(HIST.days.slice(-30))), 150); });
 
+
+/* =========================================================
+   Tu mes con LUMA (lo que importa para la factura de medición neta)
+   ========================================================= */
+let MONTHS = [], MSEL = 0;
+function monthsFrom(days) {
+  const m = {};
+  for (const d of days) { const k = d.day.slice(0, 7); (m[k] ??= { key: k, export: 0, import: 0, pv: 0, load: 0, n: 0 });
+    m[k].export += d.export || 0; m[k].import += d.import || 0; m[k].pv += d.pv || 0; m[k].load += d.load || 0; m[k].n++; }
+  return Object.values(m).sort((a, b) => a.key.localeCompare(b.key));
+}
+const mLabel = (k, opt = { month: 'long', year: 'numeric' }) => new Date(k + '-15T12:00').toLocaleDateString('es-PR', opt);
+const f0 = v => Math.round(v).toLocaleString('es-PR');
+function drawDiagram(m) {
+  const exp = m.export, imp = m.import, max = Math.max(exp, imp, 1);
+  const wE = 4 + 14 * exp / max, wI = 4 + 14 * imp / max;
+  const house = `<g transform="translate(52 112)">
+      <path d="M-46 0 L0 -40 L46 0 Z" fill="#E9E2D8" stroke="#CFC5B7" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M-30 -14 L-4 -36 L8 -26 L-18 -4 Z" fill="#23304A"/><path d="M-2 -34 L20 -16 L10 -8 L-12 -26 Z" fill="#23304A" opacity=".85"/>
+      <rect x="-38" y="0" width="76" height="52" rx="3" fill="#fff" stroke="#CFC5B7" stroke-width="2"/>
+      <rect x="-28" y="12" width="18" height="16" rx="2" fill="#FFC56B"/><rect x="10" y="12" width="18" height="16" rx="2" fill="#FFC56B"/>
+      <rect x="-7" y="26" width="14" height="26" rx="2" fill="#C9925B"/>
+      <text x="0" y="80" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Tu casa</text></g>`;
+  const pole = `<g transform="translate(372 112)">
+      <line x1="0" y1="-48" x2="0" y2="52" stroke="#8C7B69" stroke-width="7" stroke-linecap="round"/>
+      <line x1="-26" y1="-36" x2="26" y2="-36" stroke="#8C7B69" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="-20" cy="-42" r="4" fill="#B6ADA2"/><circle cx="20" cy="-42" r="4" fill="#B6ADA2"/>
+      <path d="M-26 -36 Q-60 -10 -90 -18 M26 -36 Q60 -10 90 -18" stroke="#B6ADA2" stroke-width="1.5" fill="none"/>
+      <text x="0" y="80" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">LUMA</text></g>`;
+  const arrow = (y, w, color, dir) => {   // dir 1: casa → LUMA, -1: LUMA → casa
+    const x1 = 112, x2 = 312, hx = dir > 0 ? x2 : x1, tip = dir > 0 ? 16 : -16;
+    return `<line x1="${dir > 0 ? x1 : x1 + 14}" y1="${y}" x2="${dir > 0 ? x2 - 14 : x2}" y2="${y}" stroke="${color}" stroke-width="${w.toFixed(1)}" stroke-linecap="round"/>
+      <path d="M${hx - tip} ${y - 10 - w / 3} L${hx} ${y} L${hx - tip} ${y + 10 + w / 3} Z" fill="${color}"/>`;
+  };
+  $('diagram').innerHTML = `<desc>Enviaste ${f0(exp)} kWh a LUMA y tomaste ${f0(imp)} kWh de LUMA en ${mLabel(m.key)}.</desc>
+    ${house}${pole}
+    <text x="212" y="44" text-anchor="middle" font-size="16" font-weight="600" fill="var(--muted)">Enviaste a LUMA</text>
+    <text x="212" y="76" text-anchor="middle" font-size="30" font-weight="800" fill="var(--ink)" font-family="Archivo, sans-serif">${f0(exp)} kWh</text>
+    ${arrow(96, wE, 'var(--s-prod)', 1)}
+    ${arrow(150, wI, 'var(--s-cons)', -1)}
+    <text x="212" y="196" text-anchor="middle" font-size="30" font-weight="800" fill="var(--ink)" font-family="Archivo, sans-serif">${f0(imp)} kWh</text>
+    <text x="212" y="220" text-anchor="middle" font-size="16" font-weight="600" fill="var(--muted)">Tomaste de LUMA</text>`;
+}
+function renderMonth() {
+  if (!MONTHS.length) return;
+  const m = MONTHS[MSEL], net = m.export - m.import;
+  $('mName').textContent = mLabel(m.key).replace(/^./, c => c.toUpperCase()).replace(' de ', ' ');
+  $('mPrev').disabled = MSEL === 0; $('mNext').disabled = MSEL === MONTHS.length - 1;
+  drawDiagram(m);
+  $('mResult').classList.toggle('neg', net < 0);
+  $('mResTitle').textContent = net >= 0 ? `+${f0(net)} kWh a tu favor` : `${f0(-net)} kWh por pagar`;
+  $('mResText').textContent = net >= 0
+    ? `Enviaste más de lo que tomaste. Ese sobrante queda como crédito en tu factura de medición neta.`
+    : `Tomaste más de lo que enviaste. Esa diferencia es la energía que LUMA te cobra (si no te quedan créditos de meses anteriores).`;
+  const isCur = MSEL === MONTHS.length - 1;
+  $('mNote').textContent = `Produjiste ${f0(m.pv)} kWh y tu casa consumió ${f0(m.load)} kWh. `
+    + (m.n < 28 ? `Contiene ${m.n} día${m.n === 1 ? '' : 's'} registrado${m.n === 1 ? '' : 's'}${isCur ? ' hasta hoy' : ''}. ` : '')
+    + 'LUMA factura por ciclo de lectura del contador, así que las fechas de tu factura pueden no coincidir con el mes exacto.';
+  const max = Math.max(...MONTHS.map(x => Math.max(x.export, x.import)), 1);
+  $('mList').innerHTML = MONTHS.slice().reverse().map((x, ri) => { const i = MONTHS.length - 1 - ri, n = x.export - x.import;
+    return `<button type="button" class="mrow ${i === MSEL ? 'on' : ''}" data-i="${i}" aria-label="${mLabel(x.key)}: enviaste ${f0(x.export)} kWh, tomaste ${f0(x.import)} kWh">
+      <span class="m">${mLabel(x.key, { month: 'short' })}</span>
+      <span class="bars"><i style="width:${x.export / max * 100}%;background:var(--s-prod)"></i><i style="width:${x.import / max * 100}%;background:var(--s-cons)"></i></span>
+      <span class="n ${n >= 0 ? 'pos' : 'neg'}">${n >= 0 ? '+' : '−'}${f0(Math.abs(n))} kWh</span></button>`; }).join('');
+}
+$('mPrev').onclick = () => { if (MSEL > 0) { MSEL--; renderMonth(); } };
+$('mNext').onclick = () => { if (MSEL < MONTHS.length - 1) { MSEL++; renderMonth(); } };
+$('mList').addEventListener('click', e => { const b = e.target.closest('.mrow'); if (b) { MSEL = +b.dataset.i; renderMonth(); } });
+
 /* pestañas: marca la sección visible */
-const secs = ['resumen', 'analisis', 'control'];
+const secs = ['resumen', 'mes', 'analisis', 'control'];
 addEventListener('scroll', () => {
   let cur = 'resumen'; for (const id of secs) if ($(id).getBoundingClientRect().top < 140) cur = id;
   document.querySelectorAll('nav.tabs a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + cur));
