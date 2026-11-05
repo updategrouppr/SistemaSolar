@@ -14,6 +14,7 @@ DEFAULTS = {
     "web_host": "127.0.0.1",
     "web_port": 8787,
     "token": "",           # si se define, el dashboard pide este token para cambiar ajustes
+    "view_password": "",   # contraseña para ver el dashboard cuando se entra desde la web (vía proxy)
 }
 
 

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Sistema Solar · Update Group</title>
+<link rel="icon" href="mark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Figtree:wght@400;500;600;700&family=Quicksand:wght@500&display=swap">
+<style>
+/* Layout: una sola tarjeta centrada sobre el azul noche de Update Group; el arco del sol arriba es el único adorno */
+:root {
+  --bg: #070B1C; --panel: #0E1532; --panel-2: #131C40; --ink: #F1F4FC; --muted: #8F9BBE; --line: #1E2952;
+  --blue: #2F6BFF; --cyan: #19CBEA; --lime: #8BE24C; --sun: #FFC23D; --warn: #FF8A65;
+  --grad: linear-gradient(100deg, var(--blue), var(--cyan) 55%, var(--lime));
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-word: "Quicksand", "Varela Round", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--f-body);
+  display: grid; place-items: center; padding-inline: 16px; padding-block: 32px; overflow-x: hidden; position: relative;
+}
+body::before, body::after {
+  content: ""; position: fixed; border-radius: 50%; pointer-events: none; z-index: 0;
+}
+body::before { width: 720px; height: 720px; right: -260px; top: -300px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--blue) 32%, transparent), transparent 65%); }
+body::after { width: 560px; height: 560px; left: -240px; bottom: -280px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--lime) 14%, transparent), transparent 65%); }
+
+main { position: relative; z-index: 1; width: 100%; max-width: 400px; display: grid; gap: 22px; }
+
+.logo { display: flex; align-items: center; gap: 12px; justify-self: center; text-decoration: none; }
+.logo img { width: 38px; height: auto; }
+.wm { display: grid; line-height: .9; }
+.wm b { font-family: var(--f-word); font-weight: 500; font-size: 1.55rem;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wm small { font-family: var(--f-display); font-weight: 700; font-size: .58rem; letter-spacing: .34em;
+  justify-self: end; margin-right: -.34em; color: var(--ink); }
+
+.card {
+  background: linear-gradient(180deg, var(--panel-2), var(--panel)); border: 1px solid var(--line);
+  border-radius: 26px; padding: 28px 26px 26px; display: grid; gap: 18px;
+  box-shadow: 0 30px 80px -40px color-mix(in srgb, var(--blue) 60%, transparent);
+}
+
+.sky { width: 100%; height: auto; display: block; margin-bottom: -6px; }
+.sky text { font-family: var(--f-display); font-weight: 700; font-size: 10px; letter-spacing: .18em; fill: var(--muted); }
+
+.k { font-family: var(--f-display); font-stretch: 110%; font-weight: 700; font-size: .72rem;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { font-family: var(--f-display); font-stretch: 112%; font-weight: 800; font-size: 1.85rem; line-height: 1.1;
+  margin: 4px 0 0; text-wrap: balance; }
+.gt { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lead { margin: 0; color: var(--muted); font-size: .95rem; }
+
+form { display: grid; gap: 12px; }
+label { font-weight: 600; font-size: .85rem; }
+.field { position: relative; }
+input {
+  width: 100%; font: 500 1.05rem var(--f-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 14px; padding: 14px 64px 14px 16px; transition: border-color .2s, box-shadow .2s;
+}
+input:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 22%, transparent); }
+.show {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent;
+  color: var(--muted); font: 600 .8rem var(--f-body); padding: 8px 10px; border-radius: 10px; cursor: pointer;
+}
+.show:hover { color: var(--ink); }
+.btn {
+  border: 0; cursor: pointer; border-radius: 999px; padding: 14px 22px; font: 700 1rem var(--f-body);
+  background: var(--grad); color: #050A1C; transition: transform .2s, box-shadow .2s;
+  box-shadow: 0 14px 34px -14px color-mix(in srgb, var(--cyan) 80%, transparent);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 18px 38px -14px color-mix(in srgb, var(--cyan) 90%, transparent); }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.err { margin: 0; color: var(--warn); font-weight: 600; font-size: .9rem; display: flex; gap: 8px; align-items: center; }
+.err::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+
+footer { text-align: center; color: var(--muted); font-size: .8rem; }
+footer b { color: var(--ink); font-weight: 600; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { transform: translateY(10px); } to { transform: none; } }
+}
+</style>
+</head>
+<body>
+<main>
+  <a class="logo" href="https://www.updategrouppr.com" aria-label="Update Group">
+    <img src="mark.png" alt="" width="38" height="33"><span class="wm"><b>update</b><small>GROUP</small></span>
+  </a>
+
+  <section class="card" aria-labelledby="t">
+    <svg class="sky" viewBox="0 0 320 96" role="img" aria-label="Recorrido del sol de hoy">
+      <defs>
+        <linearGradient id="arc" x1="0" x2="1">
+          <stop offset="0" stop-color="#2F6BFF"/><stop offset=".55" stop-color="#19CBEA"/><stop offset="1" stop-color="#8BE24C"/>
+        </linearGradient>
+        <radialGradient id="glow"><stop offset="0" stop-color="#FFC23D" stop-opacity=".55"/><stop offset="1" stop-color="#FFC23D" stop-opacity="0"/></radialGradient>
+      </defs>
+      <line x1="16" y1="80" x2="304" y2="80" stroke="#1E2952" stroke-width="1"/>
+      <path d="M24 80 Q160 -38 296 80" fill="none" stroke="url(#arc)" stroke-width="2" stroke-dasharray="3 5" stroke-linecap="round"/>
+      <g id="sun" transform="translate(160 21)">
+        <circle r="18" fill="url(#glow)"/>
+        <circle r="7" fill="#FFC23D"/>
+      </g>
+      <text x="24" y="94">6 AM</text>
+      <text x="296" y="94" text-anchor="end">6 PM</text>
+    </svg>
+
+    <div>
+      <p class="k">Sistema solar · Acceso privado</p>
+      <h1 id="t">Tu energía, <span class="gt">en vivo.</span></h1>
+    </div>
+    <p class="lead">Placas, batería y LUMA en tiempo real. Escribe la contraseña para entrar.</p>
+
+    <form method="post" action="login">
+      <label for="pw">Contraseña</label>
+      <div class="field">
+        <input id="pw" name="password" type="password" autocomplete="current-password"
+               autocapitalize="none" autocorrect="off" spellcheck="false" autofocus required>
+        <button class="show" type="button" id="show" aria-controls="pw" aria-pressed="false">Ver</button>
+      </div>
+      {msg}
+      <button class="btn" type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <footer>Monitoreo solar por <b>Update Group</b></footer>
+</main>
+<script>
+// Botón Ver / Ocultar
+const pw = document.getElementById('pw'), show = document.getElementById('show');
+show.addEventListener('click', () => {
+  const on = pw.type === 'password';
+  pw.type = on ? 'text' : 'password';
+  show.textContent = on ? 'Ocultar' : 'Ver';
+  show.setAttribute('aria-pressed', on);
+  pw.focus();
+});
+// Coloca el sol según la hora en Puerto Rico (6 AM a 6 PM sobre el arco; de noche queda tenue al borde)
+try {
+  const h = new Date().toLocaleString('en-US', { timeZone: 'America/Puerto_Rico', hour: 'numeric', minute: 'numeric', hour12: false });
+  const [hh, mm] = h.split(':').map(Number);
+  const t = Math.min(1, Math.max(0, ((hh % 24) + mm / 60 - 6) / 12));
+  const x = (1 - t) ** 2 * 24 + 2 * (1 - t) * t * 160 + t ** 2 * 296;
+  const y = (1 - t) ** 2 * 80 + 2 * (1 - t) * t * -38 + t ** 2 * 80;
+  const sun = document.getElementById('sun');
+  sun.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`);
+  if (hh < 6 || hh >= 18) sun.style.opacity = .35;
+} catch {}
+</script>
+</body>
+</html>

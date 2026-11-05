@@ -3,148 +3,340 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>LuxPower Control</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<meta name="robots" content="noindex, nofollow">
+<title>Sistema Solar · Update Group</title>
+<link rel="icon" href="mark.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Figtree:wght@400;500;600;700&family=Quicksand:wght@500&display=swap">
 <style>
-/* Layout: panel de instrumentos — franja de flujo de energía arriba, luego ajustes y automatizaciones en dos columnas */
+/* Layout: titular + casa isométrica en vivo + "ahora mismo" → fila de tarjetas con mini barras →
+   análisis (curva del día, balance, autosuficiencia, 30 días) → ajustes y automatizaciones.
+   Tema claro y cálido a pedido del usuario (referencia SolarSync); marca Update Group en el encabezado. */
 :root {
-  --bg: #f3f5f4; --panel: #ffffff; --line: #d9dfdd; --fg: #17201e; --muted: #5d6b67;
-  --sun: #d98a00; --bat: #1f9d63; --grid: #2f6fd1; --load: #7b4fc9;
-  --warn: #c2410c; --accent: #d98a00; --accent-fg: #1a1200;
-  --font-ui: "Barlow", "Helvetica Neue", Arial, sans-serif;
-  --font-num: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --bg: #FBF4EA; --bg-2: #F6E7D3; --panel: #FFFFFF; --panel-2: #FFFAF3; --ink: #1D1B19; --muted: #7A7067; --line: #EDE2D3;
+  --orange: #F26B1D; --orange-2: #FF9A3D; --sun: #FFB21E; --good: #2F9E44; --warn: #D9480F;
+  --s-prod: #E8590C; --s-cons: #2563EB;          /* series de gráficas, validadas contra blanco */
+  --grad-ug: linear-gradient(100deg, #2F6BFF, #19CBEA 55%, #8BE24C);
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-word: "Quicksand", "Varela Round", system-ui, sans-serif;
+  --r: 22px;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0f1413; --panel: #171e1c; --line: #2a3431; --fg: #e6ecea; --muted: #93a29d;
-  --sun: #f2a516; --bat: #34c283; --grid: #5b93ea; --load: #a582e6; --warn: #f97316;
-  --accent: #f2a516; --accent-fg: #1a1200; color-scheme: dark; } }
-:root[data-theme="dark"] {
-  --bg: #0f1413; --panel: #171e1c; --line: #2a3431; --fg: #e6ecea; --muted: #93a29d;
-  --sun: #f2a516; --bat: #34c283; --grid: #5b93ea; --load: #a582e6; --warn: #f97316;
-  --accent: #f2a516; --accent-fg: #1a1200; color-scheme: dark; }
-
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-ui); }
-.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 120px; display: grid; gap: 20px; }
-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; justify-content: space-between; }
-h1 { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: .01em; }
-h2 { margin: 0 0 12px; font-size: .78rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
-.meta { color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); font-weight: 600; font-size: .82rem; color: var(--fg); }
+body { margin: 0; color: var(--ink); font: 15.5px/1.5 var(--f-body); overflow-x: hidden;
+  background: radial-gradient(1200px 700px at 70% -10%, #FFE2BF 0%, transparent 60%), linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%) fixed; background-color: var(--bg); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 120px; display: grid; gap: 20px; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 3px; border-radius: 8px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-display); font-weight: 700; font-stretch: 110%; font-size: .68rem;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--orange); background: color-mix(in srgb, var(--orange) 10%, transparent); padding: 4px 10px; border-radius: 999px; }
+
+/* Encabezado */
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 18px; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.logo img { width: 30px; height: auto; }
+.wm { display: grid; line-height: .9; }
+.wm b { font-family: var(--f-word); font-weight: 500; font-size: 1.3rem; background: var(--grad-ug); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.wm small { font-family: var(--f-display); font-weight: 700; font-size: .5rem; letter-spacing: .34em; justify-self: end; margin-right: -.34em; }
+nav.tabs { display: flex; gap: 6px; background: color-mix(in srgb, var(--panel) 70%, transparent); padding: 5px; border-radius: 999px; border: 1px solid var(--line); }
+nav.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: .88rem; padding: 7px 14px; border-radius: 999px; }
+nav.tabs a.on, nav.tabs a:hover { background: var(--orange); color: #fff; }
+.status { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: .8rem; }
+.pill { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); font-weight: 600; font-size: .8rem; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
-.ok .dot { background: var(--bat); } .bad .dot { background: var(--warn); }
-.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.ok .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent); }
+.bad .dot { background: var(--warn); }
 
-/* Flujo de energía */
-.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; border-top: 3px solid var(--c); }
-.tile .k { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
-.tile .v { font-family: var(--font-num); font-size: 1.9rem; font-weight: 600; color: var(--fg); }
-.tile .v small { font-size: .95rem; color: var(--muted); font-weight: 400; }
-.tile .s { font-size: .85rem; color: var(--muted); }
-.socbar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-.socbar i { display: block; height: 100%; background: var(--bat); width: 0; transition: width .6s; }
-.today { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: .88rem; color: var(--muted); }
-.today b { color: var(--fg); font-family: var(--font-num); font-weight: 600; }
+.card { background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; min-width: 0;
+  box-shadow: 0 1px 0 #fff inset, 0 18px 40px -30px rgba(120, 70, 20, .35); }
 
-.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
-section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
-.group { display: grid; gap: 2px; }
-.group h3 { margin: 6px 0 4px; font-size: .95rem; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+/* ---------- Héroe */
+.hero { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.7fr) minmax(0, .95fr); gap: 16px; align-items: center; }
+.hero-text { display: grid; gap: 12px; align-content: center; }
+.hero-text h1 { font-size: clamp(1.9rem, 3.4vw, 2.7rem); font-weight: 700; font-stretch: 100%; line-height: 1.05; letter-spacing: -.01em; }
+.hero-text h1 .big { display: block; color: var(--orange); font-weight: 800; font-stretch: 105%; font-size: clamp(2.6rem, 5vw, 3.9rem); margin-top: 4px; }
+.hero-text p { margin: 0; color: var(--muted); max-width: 32ch; }
+.btn-dark { justify-self: start; display: inline-flex; align-items: center; gap: 10px; background: #2A2724; color: #fff; text-decoration: none; font-weight: 600; font-size: .9rem;
+  padding: 11px 18px; border-radius: 12px; box-shadow: 0 10px 22px -12px rgba(0,0,0,.5); }
+.btn-dark:hover { background: #000; }
+.stage { position: relative; min-width: 0; }
+.iso { width: 100%; height: auto; display: block; overflow: visible; }
+.flow { fill: none; stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 2 10; opacity: 0; transition: opacity .4s; }
+.flow.on { opacity: 1; animation: run var(--dur, 1.6s) linear infinite; }
+.flow.on.rev { animation-direction: reverse; }
+@keyframes run { to { stroke-dashoffset: -24; } }
+@media (prefers-reduced-motion: reduce) { .flow.on { animation: none; stroke-dasharray: none; } }
+.tag { position: absolute; transform: translate(-50%, -100%); background: color-mix(in srgb, #fff 92%, transparent); backdrop-filter: blur(6px);
+  border: 1px solid var(--line); border-radius: 14px; padding: 7px 11px; display: grid; gap: 0; min-width: 96px; box-shadow: 0 10px 24px -14px rgba(120,70,20,.5); }
+.tag.below { transform: translate(-50%, 12px); }
+.tag span { font-size: .68rem; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tag b { font-family: var(--f-display); font-weight: 700; font-size: 1.05rem; white-space: nowrap; }
+.tag i { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.now { display: grid; gap: 12px; }
+.now h2 { font-size: 1rem; font-stretch: 100%; font-weight: 700; }
+.now .head { font-family: var(--f-display); font-weight: 700; font-size: 1.2rem; line-height: 1.2; }
+.now p { margin: 0; color: var(--muted); font-size: .9rem; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; font-size: .86rem; border-top: 1px solid var(--line); padding-top: 10px; }
+.kv span { color: var(--muted); }
+.kv b { text-align: right; }
+.sunrow { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; font-size: .82rem; color: var(--muted); }
+.sunrow b { display: block; color: var(--ink); font-size: .95rem; }
+
+/* ---------- Tarjetas */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.kpi { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: end; }
+.kpi .t { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; font-size: .88rem; }
+.kpi .t svg { width: 18px; height: 18px; }
+.kpi .v { font-family: var(--f-display); font-weight: 700; font-size: 1.9rem; line-height: 1.05; }
+.kpi .v small { font-size: .9rem; color: var(--muted); font-weight: 600; }
+.kpi .d { font-size: .76rem; font-weight: 600; color: var(--muted); }
+.kpi .d.up { color: var(--good); } .kpi .d.down { color: var(--warn); }
+.spark { width: 120px; height: 46px; display: block; }
+
+/* ---------- Análisis */
+.grid-an { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; }
+.chart-card { display: grid; gap: 10px; align-content: start; }
+.chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 14px; }
+.chart-head h3 { font-size: 1.02rem; font-stretch: 100%; font-weight: 700; }
+.legend { display: flex; gap: 14px; color: var(--muted); font-size: .8rem; font-weight: 600; }
+.legend span { display: flex; align-items: center; gap: 6px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart .axis { font-size: 11px; fill: var(--muted); font-family: var(--f-body); }
+.chart .gridl { stroke: var(--line); stroke-width: 1; }
+.tip { position: absolute; pointer-events: none; background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px;
+  font-size: .8rem; display: grid; gap: 2px; min-width: 150px; box-shadow: 0 14px 30px -14px rgba(0,0,0,.35); z-index: 3; }
+.tip .r { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); }
+.tip .r em { font-style: normal; color: var(--ink); font-weight: 600; }
+.empty { color: var(--muted); font-size: .9rem; margin: 0; }
+.side { display: grid; gap: 14px; align-content: start; }
+.balance-rows { display: grid; gap: 12px; }
+.brow { display: grid; gap: 5px; }
+.brow .top { display: flex; justify-content: space-between; font-size: .86rem; }
+.brow .top span { color: var(--muted); font-weight: 600; }
+.brow .top b { font-variant-numeric: tabular-nums; }
+.track { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--line) 70%, transparent); overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 4px; width: 0; transition: width .8s cubic-bezier(.2,.7,.2,1); }
+.verdict { border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--good) 9%, #fff); border: 1px solid color-mix(in srgb, var(--good) 28%, var(--line)); display: grid; gap: 4px; }
+.verdict.neg { background: color-mix(in srgb, var(--warn) 8%, #fff); border-color: color-mix(in srgb, var(--warn) 28%, var(--line)); }
+.verdict b { font-family: var(--f-display); font-size: 1rem; }
+.verdict p { margin: 0; color: var(--muted); font-size: .85rem; }
+.gauge-wrap { display: grid; justify-items: center; gap: 2px; }
+.gauge { width: 100%; max-width: 260px; height: auto; display: block; }
+.gauge text { font-family: var(--f-display); }
+.month { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.month div { display: grid; }
+.month span { color: var(--muted); font-size: .74rem; font-weight: 600; }
+.month b { font-variant-numeric: tabular-nums; }
+details.tbl summary { cursor: pointer; color: var(--muted); font-size: .82rem; font-weight: 600; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; margin-top: 8px; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--muted); font-weight: 600; }
+.section-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 16px; scroll-margin-top: 16px; }
+.section-head h2 { font-size: 1.45rem; font-weight: 800; font-stretch: 105%; }
+.section-head .sub { color: var(--muted); font-size: .88rem; }
+
+/* ---------- Controles */
+.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.cols .card { display: grid; gap: 12px; }
+.cols h2 { font-size: 1.02rem; font-weight: 700; }
+.tokenrow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; color: var(--muted); font-size: .85rem; }
+.group h3 { font-size: .7rem; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 8px 0 4px; font-stretch: 110%; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .row:last-child { border-bottom: 0; }
 .row label { min-width: 0; }
-.row .ctl { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-input, select, button { font: inherit; color: var(--fg); }
-input[type=number], input[type=time], input[type=text], input[type=password], select {
-  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
-input[type=number] { width: 76px; font-family: var(--font-num); }
-button { cursor: pointer; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); padding: 6px 12px; font-weight: 600; }
-button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-button:disabled { opacity: .5; cursor: default; }
-.switch { position: relative; width: 44px; height: 24px; border-radius: 12px; background: var(--line); border: 0; padding: 0; transition: background .2s; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); transition: transform .2s; }
-.switch[aria-checked="true"] { background: var(--bat); }
+.ctl { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+input, select, button { font: inherit; color: var(--ink); }
+input[type=number], input[type=time], input[type=text], input[type=password], select { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 6px 9px; }
+input:focus, select:focus { outline: none; border-color: var(--orange); }
+input[type=number] { width: 76px; font-variant-numeric: tabular-nums; }
+button { cursor: pointer; border-radius: 10px; border: 1px solid var(--line); background: #fff; padding: 7px 13px; font-weight: 600; font-size: .85rem; }
+button:hover { background: var(--panel-2); }
+button.primary { background: var(--orange); border-color: var(--orange); color: #fff; }
+button.primary:hover { background: #DE5A0E; }
+button:disabled { opacity: .45; cursor: default; }
+.switch { position: relative; width: 46px; height: 26px; padding: 0; border-radius: 13px; background: #E3D7C7; border: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.switch[aria-checked="true"] { background: var(--orange); }
 .switch[aria-checked="true"]::after { transform: translateX(20px); }
 .slots { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; font-size: .9rem; }
-.slots .ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-
-.rule { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
-.rule .d { color: var(--muted); font-size: .85rem; }
+.slots .ctl { flex-wrap: wrap; }
+.ro { margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); font-size: .86rem; }
+.rule { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.rule .d { color: var(--muted); font-size: .84rem; }
 .rule.off { opacity: .55; }
-form.add { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+form.add { display: grid; gap: 8px; padding: 12px; border: 1px dashed #DCCDB9; border-radius: 16px; }
 form.add .r { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 form.add input[type=text] { flex: 1 1 180px; }
-.log { font-family: var(--font-num); font-size: .8rem; color: var(--muted); display: grid; gap: 3px; max-height: 180px; overflow: auto; }
+.log { font-size: .8rem; color: var(--muted); display: grid; gap: 3px; max-height: 180px; overflow: auto; font-variant-numeric: tabular-nums; }
 .log .e { color: var(--warn); }
-.empty { color: var(--muted); font-size: .9rem; }
-.ro { margin: 0; padding: 8px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); font-size: .88rem; }
+.confirm { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 10;
+  background: #fff; border-top: 2px solid var(--orange); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; box-shadow: 0 -12px 30px -14px rgba(0,0,0,.3); }
+.toast { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 11;
+  background: var(--ink); color: #fff; padding: 9px 18px; border-radius: 999px; font-weight: 700; max-width: calc(100% - 32px); }
+.toast.err { background: var(--warn); }
+footer { text-align: center; color: var(--muted); font-size: .8rem; }
 
-/* Barra de confirmación */
-.confirm { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
-  background: var(--panel); border-top: 2px solid var(--accent); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; box-shadow: 0 -6px 20px rgba(0,0,0,.12); }
-.toast { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-weight: 600; max-width: calc(100% - 32px); }
-.toast.err { background: var(--warn); color: #fff; }
-
-@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 420px) { .tile .v { font-size: 1.5rem; } }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 1060px) {
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+  .now { grid-column: 1 / -1; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .hero, .grid-an, .cols { grid-template-columns: 1fr; }
+  nav.tabs { order: 3; width: 100%; justify-content: center; }
+  .spark { width: 90px; }
+}
+@media (max-width: 420px) { .kpis { grid-template-columns: 1fr; } .tag { min-width: 0; padding: 5px 8px; } .tag b { font-size: .9rem; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <h1>LuxPower Control</h1>
-      <div class="meta"><span id="state" class="pill"><span class="dot"></span><span>Conectando…</span></span>
-        <span id="ids"></span><span id="updated"></span></div>
-    </div>
-    <div class="meta" id="tokenBox" hidden>
-      <label for="token">Token para hacer cambios</label><input id="token" type="password" autocomplete="off">
-    </div>
+    <a class="logo" href="https://www.updategrouppr.com" aria-label="Update Group"><img src="mark.png" alt="" width="30" height="26"><span class="wm"><b>update</b><small>GROUP</small></span></a>
+    <nav class="tabs" aria-label="Secciones">
+      <a href="#resumen" class="on">Resumen</a><a href="#analisis">Análisis</a><a href="#control">Control</a>
+    </nav>
+    <div class="status"><span id="state" class="pill"><span class="dot"></span><span>Conectando…</span></span><span id="updated"></span></div>
   </header>
 
-  <div class="flow">
-    <div class="tile" style="--c: var(--sun)"><span class="k">Solar</span><span class="v num" id="pv">–</span><span class="s" id="pvs">&nbsp;</span></div>
-    <div class="tile" style="--c: var(--bat)"><span class="k">Batería</span><span class="v num" id="soc">–</span>
-      <div class="socbar"><i id="socbar"></i></div><span class="s" id="bats">&nbsp;</span></div>
-    <div class="tile" style="--c: var(--grid)"><span class="k">Red</span><span class="v num" id="grid">–</span><span class="s" id="grids">&nbsp;</span></div>
-    <div class="tile" style="--c: var(--load)"><span class="k">Consumo</span><span class="v num" id="load">–</span><span class="s" id="loads">&nbsp;</span></div>
-  </div>
-  <div class="today" id="today"></div>
+  <!-- ===== Héroe ===== -->
+  <section class="hero" id="resumen" aria-label="Resumen de hoy">
+    <div class="hero-text">
+      <span class="eyebrow" id="greet">Buenos días</span>
+      <h1>Hoy tu casa generó <span class="big num" id="heroKwh">– kWh</span></h1>
+      <p id="heroSub">Energía limpia del sol, medida en vivo desde tu inversor.</p>
+      <a class="btn-dark" href="#analisis">Ver análisis <span aria-hidden="true">→</span></a>
+    </div>
 
+    <div class="stage" id="stage">
+      <svg class="iso" id="iso" role="img" aria-labelledby="isoDesc"><desc id="isoDesc">Dibujo isométrico de la casa con placas solares, inversor, batería y el poste de LUMA. Las líneas animadas muestran hacia dónde va la energía.</desc></svg>
+      <div class="tag" id="tagPv"><span><i style="background:var(--sun)"></i>Placas</span><b class="num">–</b></div>
+      <div class="tag" id="tagGrid"><span><i style="background:#5B7CFA"></i>LUMA</span><b class="num">–</b></div>
+      <div class="tag" id="tagBat"><span><i style="background:var(--good)"></i>Batería</span><b class="num">–</b></div>
+      <div class="tag" id="tagLoad"><span><i style="background:var(--s-cons)"></i>Casa</span><b class="num">–</b></div>
+    </div>
+
+    <aside class="card now" aria-labelledby="hNow">
+      <h2 id="hNow">Ahora mismo</h2>
+      <div class="head" id="nowHead">Leyendo tu sistema…</div>
+      <p id="nowText">En unos segundos verás de dónde sale la energía de tu casa.</p>
+      <div class="kv">
+        <span>Estado de la batería</span><b id="cState">–</b>
+        <span>Voltaje de LUMA</span><b class="num" id="cVac">–</b>
+        <span>Temperatura del inversor</span><b class="num" id="cTemp">–</b>
+        <span>Placas (grupo 1 · grupo 2)</span><b class="num" id="cStr">–</b>
+      </div>
+      <div class="sunrow">
+        <div>Salida del sol<b class="num" id="sunR">–</b></div>
+        <div style="text-align:right">Puesta del sol<b class="num" id="sunS">–</b></div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ===== Tarjetas ===== -->
+  <section class="kpis" aria-label="Totales de hoy">
+    <div class="card kpi">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="var(--s-prod)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Producción</div>
+      <div><div class="v num" id="kProd">–</div><div class="d" id="dProd">&nbsp;</div></div>
+      <svg class="spark" id="spProd" viewBox="0 0 120 46" aria-hidden="true"></svg>
+    </div>
+    <div class="card kpi">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="var(--s-cons)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Consumo</div>
+      <div><div class="v num" id="kCons">–</div><div class="d" id="dCons">&nbsp;</div></div>
+      <svg class="spark" id="spCons" viewBox="0 0 120 46" aria-hidden="true"></svg>
+    </div>
+    <div class="card kpi">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M5 6h14M7 6l-3 6M17 6l3 6M8 12h8"/></svg>Enviado a LUMA</div>
+      <div><div class="v num" id="kExp">–</div><div class="d" id="dExp">&nbsp;</div></div>
+      <svg class="spark" id="spExp" viewBox="0 0 120 46" aria-hidden="true"></svg>
+    </div>
+    <div class="card kpi">
+      <div class="t"><svg viewBox="0 0 24 24" fill="none" stroke="var(--good)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="18" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/></svg>Batería</div>
+      <div><div class="v num" id="kBat">–</div><div class="d" id="dBat">&nbsp;</div></div>
+      <svg class="spark" id="spBat" viewBox="0 0 120 46" aria-hidden="true"></svg>
+    </div>
+  </section>
+
+  <!-- ===== Análisis ===== -->
+  <div class="section-head" id="analisis">
+    <div><span class="eyebrow">Análisis</span><h2 style="margin-top:6px">¿Cuánto produzco vs. cuánto gasto?</h2></div>
+    <span class="sub" id="anDay"></span>
+  </div>
+  <div class="grid-an">
+    <div class="card chart-card">
+      <div class="chart-head">
+        <h3>Hoy, hora por hora</h3>
+        <div class="legend"><span><i class="swatch" style="background:var(--s-prod)"></i>Producción</span><span><i class="swatch" style="background:var(--s-cons)"></i>Consumo</span></div>
+      </div>
+      <div class="chart" id="curve"><p class="empty">La curva se va dibujando a medida que pasan las horas.</p></div>
+    </div>
+    <div class="side">
+      <div class="card chart-card">
+        <div class="chart-head"><h3>Balance de energía de hoy</h3></div>
+        <div class="balance-rows">
+          <div class="brow"><div class="top"><span>Producción</span><b id="bP">–</b></div><div class="track"><i id="tP" style="background:var(--s-prod)"></i></div></div>
+          <div class="brow"><div class="top"><span>Consumo</span><b id="bC">–</b></div><div class="track"><i id="tC" style="background:var(--s-cons)"></i></div></div>
+          <div class="brow"><div class="top"><span>Enviado a LUMA</span><b id="bE">–</b></div><div class="track"><i id="tE" style="background:#B8A898"></i></div></div>
+          <div class="brow"><div class="top"><span>Tomado de LUMA</span><b id="bI">–</b></div><div class="track"><i id="tI" style="background:#B8A898"></i></div></div>
+        </div>
+        <div class="verdict" id="verdict"><b id="vTitle">Calculando…</b><p id="vText">Con la medición neta, lo que envías a LUMA se acredita contra lo que tomas.</p></div>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-head"><h3>Autosuficiencia de hoy</h3></div>
+        <div class="gauge-wrap"><svg class="gauge" id="gauge" viewBox="0 0 260 150" role="img" aria-label="Autosuficiencia"></svg>
+          <p class="empty" style="text-align:center;font-size:.82rem">Parte de lo que consumiste que no tuviste que tomar de LUMA.</p></div>
+        <div class="month">
+          <div><span>Producido este mes</span><b id="mProd">–</b></div>
+          <div><span>Consumido este mes</span><b id="mCons">–</b></div>
+          <div><span>Crédito neto del mes</span><b id="mNet">–</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card chart-card">
+    <div class="chart-head">
+      <h3>Últimos 30 días</h3>
+      <div class="legend"><span><i class="swatch" style="background:var(--s-prod)"></i>Producido</span><span><i class="swatch" style="background:var(--s-cons)"></i>Consumido</span></div>
+    </div>
+    <div class="chart" id="daysChart"></div>
+    <details class="tbl"><summary>Ver como tabla</summary><div class="tablewrap" id="daysTable"></div></details>
+  </div>
+
+  <!-- ===== Control ===== -->
+  <div class="section-head" id="control"><div><span class="eyebrow">Control</span><h2 style="margin-top:6px">Ajustes y automatizaciones</h2></div></div>
+  <div class="tokenrow" id="tokenBox" hidden>
+    <label for="token">Token para hacer cambios</label><input id="token" type="password" autocomplete="off" autocapitalize="none">
+  </div>
   <div class="cols">
     <section class="card" aria-labelledby="h-ctl">
       <h2 id="h-ctl">Ajustes del inversor</h2>
       <p class="ro" id="roNote" hidden>Solo lectura. Escribe el token arriba para poder cambiar ajustes y reglas.</p>
       <div id="controls" class="empty">Leyendo ajustes del inversor…</div>
     </section>
-
     <section class="card" aria-labelledby="h-auto">
       <h2 id="h-auto">Automatizaciones</h2>
       <div id="rules"></div>
       <form class="add" id="addRule">
         <div class="r"><input id="rName" type="text" placeholder="Nombre (ej. Cargar de madrugada)" required></div>
-        <div class="r">
-          <label for="rTrig">Cuando</label>
-          <select id="rTrig"></select>
-          <input id="rAt" type="time" value="01:00">
-          <input id="rVal" type="number" value="20" hidden>
-        </div>
-        <div class="r">
-          <label for="rCtl">Entonces</label>
-          <select id="rCtl"></select>
-          <span id="rValBox"></span>
-        </div>
+        <div class="r"><label for="rTrig">Cuando</label><select id="rTrig"></select>
+          <input id="rAt" type="time" value="01:00"><input id="rVal" type="number" value="20" hidden></div>
+        <div class="r"><label for="rCtl">Entonces</label><select id="rCtl"></select><span id="rValBox"></span></div>
         <div class="r"><button class="primary" type="submit">Agregar regla</button></div>
       </form>
-      <h2>Historial</h2>
+      <h2>Historial de reglas</h2>
       <div class="log" id="log"><span class="empty">Aún no se ha ejecutado ninguna regla.</span></div>
     </section>
   </div>
+
+  <footer>Monitoreo solar por <b>Update Group</b> · <span id="ids"></span></footer>
 </div>
 
 <div class="confirm" id="confirm" hidden>
@@ -156,63 +348,368 @@ form.add input[type=text] { flex: 1 1 180px; }
 
 <script>
 const $ = id => document.getElementById(id);
-let META = null, CONTROLS = {}, pending = null;
-const fmtW = w => Math.abs(w) >= 1000 ? (w / 1000).toFixed(2) + '<small> kW</small>' : Math.round(w) + '<small> W</small>';
+const API = p => p.replace(/^\//, '');           // rutas relativas: funciona en la Mac y detrás del proxy
+let META = null, CONTROLS = {}, pending = null, HIST = null;
+const kw = w => Math.abs(w) >= 1000 ? (w / 1000).toFixed(1) + ' kW' : Math.round(w) + ' W';
+const kwh = v => (v == null ? '–' : (+v).toFixed(1) + ' kWh');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const TZ = 'America/Puerto_Rico';
+const prTime = d => d.toLocaleTimeString('es-PR', { timeZone: TZ, hour: 'numeric', minute: '2-digit' });
 
-function token() { try { return localStorage.getItem('luxToken') || TYPED; } catch { return TYPED; } }
+/* =========================================================
+   Casa isométrica (dibujada en código para animar los flujos)
+   ========================================================= */
+const S = 25, C30 = Math.cos(Math.PI / 6), OX = 290, OY = 175;
+const P = (x, y, z = 0) => [OX + (x - y) * C30 * S, OY + (x + y) * 0.5 * S - z * S];
+const pts = a => a.map(p => P(...p).map(v => v.toFixed(1)).join(',')).join(' ');
+const poly = (a, fill, extra = '') => `<polygon points="${pts(a)}" fill="${fill}" ${extra}/>`;
+const pathOf = a => a.map((p, i) => (i ? 'L' : 'M') + P(...p).map(v => v.toFixed(1)).join(' ')).join(' ');
+
+function box(x0, y0, z0, x1, y1, z1, top, right, left, extra = '') {   // caras visibles: arriba, +x (derecha), +y (izquierda)
+  return poly([[x0, y1, z0], [x1, y1, z0], [x1, y1, z1], [x0, y1, z1]], left, extra)
+       + poly([[x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1]], right, extra)
+       + poly([[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]], top, extra);
+}
+function tree(x, y, r, h, c1, c2) {
+  const [cx, cy] = P(x, y, h), [bx, by] = P(x, y, 0);
+  return `<ellipse cx="${bx}" cy="${by + 2}" rx="${r * 0.9}" ry="${r * 0.38}" fill="rgba(60,90,30,.18)"/>
+    <line x1="${bx}" y1="${by}" x2="${cx}" y2="${cy + r * 0.4}" stroke="#8A6542" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="${c1}"/><circle cx="${cx - r * 0.35}" cy="${cy - r * 0.35}" r="${r * 0.55}" fill="${c2}"/>`;
+}
+function palm(x, y, h) {
+  const [bx, by] = P(x, y, 0), [tx, ty] = P(x, y, h);
+  const frond = (dx, dy) => `<path d="M${tx} ${ty} q ${dx * 0.5} ${dy - 10} ${dx} ${dy}" stroke="#3E8E3A" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  return `<path d="M${bx} ${by} Q ${bx + 6} ${(by + ty) / 2} ${tx} ${ty}" stroke="#A47B52" stroke-width="4" fill="none" stroke-linecap="round"/>`
+    + frond(-26, 8) + frond(26, 8) + frond(-18, 18) + frond(18, 18) + frond(-4, -16) + frond(10, -14);
+}
+function buildHouse() {
+  let s = `<defs>
+    <linearGradient id="gPanel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34466E"/><stop offset=".55" stop-color="#1D2944"/><stop offset="1" stop-color="#2B3A5E"/></linearGradient>
+    <radialGradient id="gSun"><stop offset="0" stop-color="#FFB21E" stop-opacity=".55"/><stop offset="1" stop-color="#FFB21E" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gWin"><stop offset="0" stop-color="#FFC56B" stop-opacity=".9"/><stop offset="1" stop-color="#FFC56B" stop-opacity="0"/></radialGradient>
+  </defs>`;
+  // sol
+  const [sx, sy] = P(8, -5, 7.5);
+  s += `<g id="sunG" opacity=".35"><circle cx="${sx}" cy="${sy}" r="70" fill="url(#gSun)"/><circle cx="${sx}" cy="${sy}" r="30" fill="#FFC24A"/></g>`;
+  // terreno flotante
+  s += box(0, 0, -1.1, 15, 10.5, 0, '#CFE4AE', '#B0835A', '#C49468');
+  s += poly([[0, 0, 0], [15, 0, 0], [15, 10.5, 0], [0, 10.5, 0]], '#C7DFA3');
+  // camino de entrada
+  s += poly([[10.6, 7, 0.01], [13.6, 7, 0.01], [13.6, 10.5, 0.01], [10.6, 10.5, 0.01]], '#E9E1D3');
+  s += poly([[6.2, 7, 0.01], [7.2, 7, 0.01], [7.2, 10.5, 0.01], [6.2, 10.5, 0.01]], '#E9E1D3');
+  // árboles de atrás
+  s += tree(1.2, 0.9, 20, 2.6, '#5FA341', '#7DBE52') + tree(13.8, 1.2, 24, 3.0, '#4F9A3B', '#6DB34A') + palm(0.9, 3.4, 5.2);
+  // techo, cara trasera
+  const eL = 1.5, eR = 10.4, ridgeY = 4.5, ridgeZ = 4.7, eaveZ = 3.0;
+  s += poly([[eL, 1.5, eaveZ], [eR, 1.5, eaveZ], [eR, ridgeY, ridgeZ], [eL, ridgeY, ridgeZ]], '#D8CFC3');
+  // cuerpo de la casa
+  s += box(2, 2, 0, 10, 7, eaveZ, '#F3EEE6', '#ECE5DA', '#FFFFFF');
+  // franja de madera en la fachada
+  s += poly([[2, 7, 0.0], [3.0, 7, 0.0], [3.0, 7, eaveZ], [2, 7, eaveZ]], '#C9925B');
+  // hastial (triángulo en +x)
+  s += poly([[10, 2, eaveZ], [10, 7, eaveZ], [10, ridgeY, ridgeZ - 0.15]], '#E4DCCF');
+  // ventanas grandes y puerta (fachada +y)
+  for (const [a, b] of [[5.0, 6.6], [7.2, 9.4]]) {
+    s += poly([[a, 7.01, 0.5], [b, 7.01, 0.5], [b, 7.01, 2.5], [a, 7.01, 2.5]], '#3A3F4F');
+    s += poly([[a + .1, 7.02, 0.6], [b - .1, 7.02, 0.6], [b - .1, 7.02, 2.4], [a + .1, 7.02, 2.4]], '#FFC56B', 'class="win" opacity=".35"');
+  }
+  s += poly([[10.01, 3.2, 0.6], [10.01, 5.6, 0.6], [10.01, 5.6, 2.3], [10.01, 3.2, 2.3]], '#3A3F4F');
+  s += poly([[10.02, 3.3, 0.7], [10.02, 5.5, 0.7], [10.02, 5.5, 2.2], [10.02, 3.3, 2.2]], '#FFC56B', 'class="win" opacity=".35"');
+  // inversor y batería en la fachada
+  s += poly([[3.3, 7.03, 1.25], [4.25, 7.03, 1.25], [4.25, 7.03, 2.35], [3.3, 7.03, 2.35]], '#FFFFFF', 'stroke="#9C948A" stroke-width="1"');
+  s += poly([[3.45, 7.04, 1.85], [4.1, 7.04, 1.85], [4.1, 7.04, 2.15], [3.45, 7.04, 2.15]], '#23304A');
+  const [ix, iy] = P(3.78, 7.05, 1.5); s += `<circle cx="${ix}" cy="${iy}" r="2.4" fill="#2F9E44"/>`;
+  s += box(3.25, 7.05, 0, 4.35, 7.6, 1.05, '#F4F1EC', '#DAD4CB', '#FFFFFF', 'stroke="#B6ADA2" stroke-width=".8"');
+  s += poly([[3.45, 7.61, 0.18], [4.15, 7.61, 0.18], [4.15, 7.61, 0.88], [3.45, 7.61, 0.88]], '#E7E2DA');
+  s += `<polygon id="batFill" points="" fill="#2F9E44"/>`;
+  // techo, cara delantera + placas
+  s += poly([[eL, ridgeY, ridgeZ], [eR, ridgeY, ridgeZ], [eR, 7.6, eaveZ - 0.05], [eL, 7.6, eaveZ - 0.05]], '#E9E2D8');
+  s += `<path d="${pathOf([[eL, ridgeY, ridgeZ + .02], [eR, ridgeY, ridgeZ + .02]])}" stroke="#CFC5B7" stroke-width="2"/>`;
+  const slope = (x, v, dz = 0.06) => [x, ridgeY + v * (7.6 - ridgeY), ridgeZ + v * (eaveZ - ridgeZ) + dz];
+  for (let c = 0; c < 5; c++) for (let r = 0; r < 2; r++) {
+    const x0 = 2.6 + c * 1.5, x1 = x0 + 1.38, v0 = 0.1 + r * 0.42, v1 = v0 + 0.38;
+    s += poly([slope(x0, v0), slope(x1, v0), slope(x1, v1), slope(x0, v1)], 'url(#gPanel)', 'stroke="#56688F" stroke-width=".8"');
+    s += `<path d="${pathOf([slope((x0 + x1) / 2, v0), slope((x0 + x1) / 2, v1)])}" stroke="#4A5C84" stroke-width=".6"/>`;
+  }
+  // marquesina con carro
+  s += box(10.6, 3.2, 2.35, 14, 7.2, 2.6, '#F3EEE6', '#E2DBD0', '#FFFFFF');
+  for (const [px, py] of [[13.8, 7.0], [13.8, 3.4]]) s += box(px - .12, py - .12, 0, px + .12, py + .12, 2.35, '#EEE', '#D9D2C7', '#F7F4EF');
+  s += box(11.0, 4.2, 0.25, 13.3, 6.4, 1.0, '#F8F8FA', '#D6D8DE', '#ECEDF1');
+  s += box(11.5, 4.45, 1.0, 12.8, 6.15, 1.5, '#B9C8DA', '#9FB0C4', '#C9D6E4');
+  // poste de LUMA
+  const pole = [0.8, 9.4];
+  s += `<path d="${pathOf([[...pole, 0], [...pole, 5.6]])}" stroke="#8C7B69" stroke-width="5" stroke-linecap="round"/>`;
+  s += `<path d="${pathOf([[pole[0] - .7, pole[1] + .7, 5.2], [pole[0] + .7, pole[1] - .7, 5.2]])}" stroke="#8C7B69" stroke-width="4" stroke-linecap="round"/>`;
+  s += `<path d="${pathOf([[pole[0] + .6, pole[1] - .6, 5.25], [2.0, 7.0, 2.9]])}" stroke="#6B5E52" stroke-width="1.2" fill="none"/>`;
+  // arbustos del frente
+  s += tree(9.6, 9.3, 16, 1.2, '#5FA341', '#86C65A') + tree(4.8, 9.6, 14, 1.0, '#4F9A3B', '#7DBE52') + tree(14.3, 9.8, 12, 0.9, '#5FA341', '#86C65A');
+  s += palm(14.4, 2.6, 4.6);
+  // flujos (encima de todo)
+  s += `<path id="fPv" class="flow" stroke="#FFA41B" d="${pathOf([slope(5.3, 0.6, .1), slope(3.8, 0.95, .1), [3.8, 7.05, eaveZ], [3.78, 7.05, 2.35]])}"/>`;
+  s += `<path id="fGrid" class="flow" stroke="#5B7CFA" d="${pathOf([[pole[0] + .6, pole[1] - .6, 5.25], [2.0, 7.0, 2.9], [2.9, 7.05, 1.8], [3.3, 7.05, 1.8]])}"/>`;
+  s += `<path id="fBat" class="flow" stroke="#2F9E44" d="${pathOf([[3.78, 7.05, 1.25], [3.78, 7.4, 1.06]])}"/>`;
+  s += `<path id="fLoad" class="flow" stroke="#2563EB" d="${pathOf([[4.25, 7.05, 1.8], [5.0, 7.05, 1.8], [6.0, 7.05, 1.5]])}"/>`;
+  return s;
+}
+const ANCH = { tagPv: [6.0, 4.5, 6.2], tagGrid: [0.8, 9.4, 6.4], tagBat: [3.8, 7.6, -0.3, 'below'], tagLoad: [10.2, 4.6, 5.0] };
+function initHouse() {
+  const svg = $('iso');
+  const xs = [P(0, 10.5)[0] - 20, P(15, 0)[0] + 20], ys = [P(8, -5, 7.5)[1] - 40, P(15, 10.5, -1.1)[1] + 12];
+  svg.setAttribute('viewBox', `${xs[0]} ${ys[0]} ${xs[1] - xs[0]} ${ys[1] - ys[0]}`);
+  svg.insertAdjacentHTML('beforeend', buildHouse());
+  const place = () => {
+    const vb = svg.viewBox.baseVal, r = svg.getBoundingClientRect(), st = $('stage').getBoundingClientRect();
+    for (const [id, [ax, ay, az, pos]] of Object.entries(ANCH)) {
+      const [x, y] = P(ax, ay, az); const el = $(id);
+      el.classList.toggle('below', pos === 'below');
+      el.style.left = (r.left - st.left + (x - vb.x) / vb.width * r.width) + 'px';
+      el.style.top = (r.top - st.top + (y - vb.y) / vb.height * r.height) + 'px';
+    }
+  };
+  place(); addEventListener('resize', place); setTimeout(place, 300);
+}
+function setFlow(id, watts, reverse) {
+  const el = $(id), on = Math.abs(watts) > 25;
+  el.classList.toggle('on', on); el.classList.toggle('rev', !!reverse);
+  el.style.setProperty('--dur', Math.max(0.45, 2.2 - Math.abs(watts) / 2600).toFixed(2) + 's');
+}
+function setBattery(soc) {
+  const z = 0.2 + 0.66 * soc / 100;
+  $('batFill').setAttribute('points', pts([[3.47, 7.62, 0.2], [4.13, 7.62, 0.2], [4.13, 7.62, z], [3.47, 7.62, z]]));
+  $('batFill').setAttribute('fill', soc < 25 ? '#D9480F' : '#2F9E44');
+}
+
+/* =========================================================
+   Token, API
+   ========================================================= */
 let NEEDS_TOKEN = false, TYPED = '';
+function token() { try { return localStorage.getItem('luxToken') || TYPED; } catch { return TYPED; } }
 $('token').addEventListener('input', e => { TYPED = e.target.value.replace(/[\s"'“”]/g, ''); try { localStorage.setItem('luxToken', TYPED); } catch {} applyReadOnly(); });
 const readOnly = () => NEEDS_TOKEN && !token();
 function applyReadOnly() {
-  const ro = readOnly();
-  $('roNote').hidden = !ro;
-  document.querySelectorAll('#controls button, #controls input, #rules button, #addRule button, #addRule input, #addRule select')
-    .forEach(el => el.disabled = ro);
+  const ro = readOnly(); $('roNote').hidden = !ro;
+  document.querySelectorAll('#controls button, #controls input, #rules button, #addRule button, #addRule input, #addRule select').forEach(el => el.disabled = ro);
 }
-
 function toast(msg, err) {
   const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.hidden = false;
   clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, 3500);
 }
-
 async function api(path, body) {
-  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': token() }, body: JSON.stringify(body) } : {});
+  const r = await fetch(API(path), body ? { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': token() }, body: JSON.stringify(body) } : {});
+  if (r.status === 401 && !body) { location.reload(); throw new Error('sesión vencida'); }
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || r.statusText);
   return j;
 }
 
+/* =========================================================
+   En vivo
+   ========================================================= */
 function render(s) {
-  const st = $('state');
-  const live = s.connected && !s.error && s.updated;
+  const st = $('state'), live = s.connected && !s.error && s.updated;
   st.className = 'pill ' + (live ? 'ok' : 'bad');
-  st.lastElementChild.textContent = s.error ? 'Sin respuesta: ' + s.error : (s.inputs.state || (s.connected ? 'Conectado' : 'Desconectado'));
-  $('ids').textContent = `${s.host} · inversor ${s.serial || '?'} · dongle ${s.datalog || '?'}`;
-  $('updated').textContent = s.updated ? 'actualizado ' + new Date(s.updated * 1000).toLocaleTimeString() : '';
+  st.lastElementChild.textContent = live ? 'En vivo' : 'Sin conexión con el inversor';
+  $('updated').textContent = s.updated ? prTime(new Date(s.updated * 1000)) : '';
+  $('ids').textContent = `inversor ${s.serial || '?'}`;
   $('tokenBox').hidden = !s.needs_token;
   if (NEEDS_TOKEN !== !!s.needs_token) { NEEDS_TOKEN = !!s.needs_token; applyReadOnly(); }
   if ($('token').value === '' && token()) $('token').value = token();
   const d = s.inputs; if (!d || d.soc === undefined) return;
-  $('pv').innerHTML = fmtW(d.p_pv);
-  $('pvs').textContent = `PV1 ${d.p_pv_1} W · PV2 ${d.p_pv_2} W · PV3 ${d.p_pv_3} W`;
-  $('soc').innerHTML = d.soc + '<small> %</small>';
-  $('socbar').style.width = d.soc + '%';
-  $('bats').textContent = `${d.v_bat} V · ${d.p_battery > 0 ? 'cargando ' + d.p_battery + ' W' : d.p_battery < 0 ? 'descargando ' + -d.p_battery + ' W' : 'en reposo'}${d.t_bat !== undefined ? ' · ' + d.t_bat + ' °C' : ''}`;
-  $('grid').innerHTML = fmtW(Math.abs(d.p_grid));
-  $('grids').textContent = `${d.p_grid > 0 ? 'importando' : d.p_grid < 0 ? 'exportando' : 'sin flujo'} · ${d.v_ac} V · ${d.f_ac} Hz`;
-  $('load').innerHTML = fmtW(d.p_load);
-  $('loads').textContent = `estimado · EPS ${d.p_eps} W`;
-  $('today').innerHTML = [['Solar hoy', d.e_pv_day], ['Cargado', d.e_chg_day], ['Descargado', d.e_dischg_day],
-    ['Importado', d.e_to_user_day], ['Exportado', d.e_to_grid_day]].map(([k, v]) => `<span>${k} <b>${v} kWh</b></span>`).join('')
-    + (d.t_inner !== undefined ? `<span>Inversor <b>${d.t_inner} °C</b></span>` : '');
+
+  setFlow('fPv', d.p_pv); setFlow('fGrid', d.p_grid, d.p_grid < 0);
+  setFlow('fBat', d.p_battery, d.p_battery < 0); setFlow('fLoad', d.p_load);
+  $('sunG').setAttribute('opacity', (0.3 + Math.min(d.p_pv / 6000, 1) * 0.7).toFixed(2));
+  const glow = (0.2 + Math.min(d.p_load / 3500, 1) * 0.75).toFixed(2);
+  document.querySelectorAll('#iso .win').forEach(w => w.setAttribute('opacity', glow));
+  setBattery(d.soc);
+  const tag = (id, v) => $(id).querySelector('b').textContent = v;
+  tag('tagPv', kw(d.p_pv));
+  tag('tagGrid', d.v_ac < 50 ? 'Sin luz' : d.p_grid < -25 ? '↑ ' + kw(-d.p_grid) : d.p_grid > 25 ? '↓ ' + kw(d.p_grid) : 'En espera');
+  tag('tagBat', `${d.soc}% · ${d.p_battery > 25 ? 'cargando' : d.p_battery < -25 ? kw(-d.p_battery) : 'reposo'}`);
+  tag('tagLoad', kw(d.p_load));
+
+  let head, text;
+  if (d.v_ac < 50) { head = 'Se fue la luz: estás con placas y batería'; text = `La casa usa ${kw(d.p_load)}. Las placas dan ${kw(d.p_pv)} y la batería está en ${d.soc}%.`; }
+  else if (d.p_grid < -25) { head = `Estás enviando ${kw(-d.p_grid)} a LUMA`; text = `Las placas cubren la casa (${kw(d.p_load)}) y el sobrante se acredita en tu medición neta.`; }
+  else if (d.p_grid > 25 && d.p_pv > 25) { head = 'Placas + LUMA cubren la casa'; text = `La casa usa ${kw(d.p_load)}: ${kw(d.p_pv)} de las placas y ${kw(d.p_grid)} de LUMA.`; }
+  else if (d.p_grid > 25) { head = 'La casa está usando LUMA'; text = `No hay sol ahora; la batería queda de respaldo al ${d.soc}%. LUMA da ${kw(d.p_grid)}.`; }
+  else { head = 'Tus placas cubren la casa'; text = `Producen ${kw(d.p_pv)} y la casa usa ${kw(d.p_load)}.`; }
+  $('nowHead').textContent = head; $('nowText').textContent = text;
+  $('cState').textContent = d.p_battery > 25 ? `Cargando · ${d.soc}%` : d.p_battery < -25 ? `Descargando · ${d.soc}%` : `En reposo · ${d.soc}%`;
+  $('cVac').textContent = d.v_ac < 50 ? 'Sin luz' : `${d.v_ac} V`;
+  $('cTemp').textContent = d.t_inner != null ? `${d.t_inner} °C` : '–';
+  $('cStr').textContent = `${kw(d.p_pv_1)} · ${kw(d.p_pv_2)}`;
+  $('kBat').innerHTML = `${d.soc}<small> %</small>`;
+  $('dBat').textContent = d.p_battery > 25 ? '● Cargando' : d.p_battery < -25 ? '● Descargando' : '● En reposo';
+  $('dBat').className = 'd' + (d.p_battery > 25 ? ' up' : '');
+
   if (s.controls_updated && JSON.stringify(s.controls) !== JSON.stringify(CONTROLS)) { CONTROLS = s.controls; renderControls(); }
 }
 
-function ask(text, action) {
-  pending = action;
-  $('confirmText').textContent = text;
-  $('confirm').hidden = false; $('confirmYes').focus();
+/* Saludo y horas de sol para Puerto Rico (fórmula de la NOAA, precisión de ±2 min) */
+function sunTimes(date, lat = 18.22, lon = -66.4) {
+  const rad = Math.PI / 180, day = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 864e5);
+  const g = 2 * Math.PI / 365 * (day - 1);
+  const eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g);
+  const ha = Math.acos(Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(decl)) - Math.tan(lat * rad) * Math.tan(decl)) / rad;
+  const utc = m => { const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())); d.setUTCMinutes(m); return d; };
+  return [utc(720 - 4 * (lon + ha) - eq), utc(720 - 4 * (lon - ha) - eq)];
 }
+function greet() {
+  const h = +new Date().toLocaleString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false }) % 24;
+  $('greet').textContent = h < 12 ? '☀ Buenos días' : h < 19 ? '☀ Buenas tardes' : '☾ Buenas noches';
+  const [r, s] = sunTimes(new Date()); $('sunR').textContent = prTime(r); $('sunS').textContent = prTime(s);
+}
+
+/* =========================================================
+   Análisis
+   ========================================================= */
+function niceMax(v) { const s = [1, 2, 2.5, 5, 10]; const p = 10 ** Math.floor(Math.log10(Math.max(v, 1))); return s.find(x => x * p >= v) * p; }
+function hourly(curve, f) {
+  const out = Array(24).fill(null);
+  for (const p of curve) { const h = +new Date(p.t * 1000).toLocaleString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false }) % 24; (out[h] ??= []).push(f(p)); }
+  return out.map(a => a ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+}
+function spark(id, vals, color) {
+  const W = 120, H = 46, n = vals.length, bw = W / n - 1.6, max = Math.max(...vals, 1);
+  $(id).innerHTML = vals.map((v, i) => { const h = Math.max(2, v / max * (H - 2));
+    return `<rect x="${(i * W / n).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${color}" opacity="${v ? 1 : .25}"/>`; }).join('');
+}
+function delta(el, today, yday, goodUp = true) {
+  if (yday == null || !yday) { $(el).textContent = 'hoy'; $(el).className = 'd'; return; }
+  const pct = (today - yday) / yday * 100, up = pct >= 0;
+  $(el).textContent = `${up ? '↗' : '↘'} ${Math.abs(pct).toFixed(0)}% vs. ayer a esta hora`;
+  $(el).className = 'd ' + ((up === goodUp) ? 'up' : 'down');
+}
+function tipHTML(title, rows) {
+  return `<b>${esc(title)}</b>` + rows.map(([k, v, c]) => `<div class="r"><span><i class="swatch" style="background:${c};margin-right:6px"></i>${k}</span><em>${v}</em></div>`).join('');
+}
+function renderToday(days, curve) {
+  const t = days[days.length - 1]; if (!t) return;
+  const y = days.find(d => d.day === new Date(Date.now() - 864e5).toLocaleDateString('en-CA', { timeZone: TZ }));
+  $('heroKwh').textContent = `${t.pv.toFixed(1)} kWh`;
+  $('heroSub').textContent = t.pv >= t.load
+    ? `Produjiste más de lo que gastaste (${t.load.toFixed(1)} kWh). El sobrante se acredita con LUMA.`
+    : `Gastaste ${t.load.toFixed(1)} kWh; la diferencia la cubrió LUMA con tus créditos.`;
+  $('anDay').textContent = new Date(t.day + 'T12:00').toLocaleDateString('es-PR', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('kProd').innerHTML = `${t.pv.toFixed(1)}<small> kWh</small>`; $('kCons').innerHTML = `${t.load.toFixed(1)}<small> kWh</small>`;
+  $('kExp').innerHTML = `${t.export.toFixed(1)}<small> kWh</small>`;
+  delta('dProd', t.pv, y?.pv, true); delta('dCons', t.load, y?.load, false); delta('dExp', t.export, y?.export, true);
+  spark('spProd', hourly(curve, p => p.pv), 'var(--s-prod)');
+  spark('spCons', hourly(curve, p => p.load), 'var(--s-cons)');
+  spark('spExp', hourly(curve, p => Math.max(0, -p.grid)), '#FF9A3D');
+  spark('spBat', hourly(curve, p => p.soc), 'var(--good)');
+
+  const mx = Math.max(t.pv, t.load, t.export, t.import, 0.1);
+  for (const [b, tr, v] of [['bP', 'tP', t.pv], ['bC', 'tC', t.load], ['bE', 'tE', t.export], ['bI', 'tI', t.import]]) { $(b).textContent = kwh(v); $(tr).style.width = (v / mx * 100) + '%'; }
+  const net = t.export - t.import;
+  $('verdict').classList.toggle('neg', net < 0);
+  $('vTitle').textContent = net >= 0 ? `+${net.toFixed(1)} kWh de crédito hoy` : `${net.toFixed(1)} kWh contra tus créditos hoy`;
+  $('vText').textContent = net >= 0 ? 'Enviaste a LUMA más de lo que tomaste; ese sobrante queda acreditado en tu medición neta.'
+                                    : 'Tomaste de LUMA más de lo que enviaste; lo cubren los créditos acumulados.';
+  const self = t.load > 0 ? Math.max(0, Math.min(1, 1 - t.import / t.load)) : 0;
+  drawGauge(self);
+  const month = t.day.slice(0, 7), md = days.filter(x => x.day.startsWith(month)), sum = k => md.reduce((a, x) => a + (x[k] || 0), 0);
+  $('mProd').textContent = kwh(sum('pv')); $('mCons').textContent = kwh(sum('load'));
+  const mnet = sum('export') - sum('import'); $('mNet').textContent = (mnet >= 0 ? '+' : '') + mnet.toFixed(1) + ' kWh';
+}
+function drawGauge(f) {
+  const cx = 130, cy = 128, r = 100, ticks = 48; let s = '';
+  for (let i = 0; i <= ticks; i++) {
+    const a = Math.PI + i / ticks * Math.PI, on = i / ticks <= f;
+    const x1 = cx + Math.cos(a) * (r - 14), y1 = cy + Math.sin(a) * (r - 14), x2 = cx + Math.cos(a) * r, y2 = cy + Math.sin(a) * r;
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${on ? 'var(--orange)' : '#EADFD0'}" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  const a = Math.PI + f * Math.PI;
+  s += `<circle cx="${(cx + Math.cos(a) * (r - 26)).toFixed(1)}" cy="${(cy + Math.sin(a) * (r - 26)).toFixed(1)}" r="5" fill="var(--orange)" stroke="#fff" stroke-width="2"/>`;
+  s += `<text x="${cx}" y="${cy - 18}" text-anchor="middle" font-size="38" font-weight="800" fill="var(--ink)">${Math.round(f * 100)}<tspan font-size="18" fill="var(--muted)">%</tspan></text>`;
+  s += `<text x="${cx}" y="${cy + 2}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="Figtree, sans-serif">sin usar LUMA</text>`;
+  $('gauge').innerHTML = s;
+}
+function drawCurve(curve, day) {
+  const box = $('curve');
+  if (!curve.length) { box.innerHTML = '<p class="empty">La curva se va dibujando a medida que pasan las horas. Vuelve en un rato.</p>'; return; }
+  const W = box.clientWidth || 600, H = 270, L = 44, R = 10, T = 10, B = 26;
+  const start = new Date(day + 'T00:00:00-04:00').getTime() / 1000;
+  const x = t => L + (t - start) / 86400 * (W - L - R);
+  const maxV = niceMax(Math.max(...curve.map(p => Math.max(p.pv, p.load)), 1000));
+  const y = v => T + (1 - v / maxV) * (H - T - B);
+  const line = k => curve.map((p, i) => (i ? 'L' : 'M') + x(p.t + 150).toFixed(1) + ' ' + y(p[k]).toFixed(1)).join(' ');
+  const area = k => line(k) + ` L${x(curve.at(-1).t + 150).toFixed(1)} ${y(0)} L${x(curve[0].t + 150).toFixed(1)} ${y(0)} Z`;
+  const hl = h => h === 0 || h === 24 ? '12 AM' : h === 12 ? '12 PM' : h < 12 ? h + ' AM' : (h - 12) + ' PM';
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Producción y consumo de hoy por hora">
+    <defs><linearGradient id="gaP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8590C" stop-opacity=".28"/><stop offset="1" stop-color="#E8590C" stop-opacity="0"/></linearGradient>
+      <linearGradient id="gaC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563EB" stop-opacity=".18"/><stop offset="1" stop-color="#2563EB" stop-opacity="0"/></linearGradient></defs>
+    ${[0, .25, .5, .75, 1].map(f => f * maxV).map(v => `<line class="gridl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v >= 1000 ? (v / 1000) + ' kW' : v}</text>`).join('')}
+    ${[0, 6, 12, 18, 24].map(h => `<text class="axis" x="${x(start + h * 3600)}" y="${H - 6}" text-anchor="${h === 0 ? 'start' : h === 24 ? 'end' : 'middle'}">${hl(h)}</text>`).join('')}
+    <path d="${area('pv')}" fill="url(#gaP)"/><path d="${area('load')}" fill="url(#gaC)"/>
+    <path d="${line('pv')}" fill="none" stroke="var(--s-prod)" stroke-width="2" stroke-linejoin="round"/>
+    <path d="${line('load')}" fill="none" stroke="var(--s-cons)" stroke-width="2" stroke-linejoin="round"/>
+    <g id="cross" visibility="hidden"><line id="cx" y1="${T}" y2="${H - B}" stroke="var(--muted)" stroke-dasharray="3 3"/>
+      <circle id="cp" r="5" fill="var(--s-prod)" stroke="#fff" stroke-width="2"/><circle id="cc" r="5" fill="var(--s-cons)" stroke="#fff" stroke-width="2"/></g>
+    <rect id="hit" x="${L}" y="0" width="${W - L - R}" height="${H}" fill="transparent"/>
+  </svg><div class="tip" id="ctip" hidden></div>`;
+  const tip = box.querySelector('#ctip'), q = s => box.querySelector(s);
+  const move = e => {
+    const r = box.getBoundingClientRect(), px = (e.clientX - r.left) * (W / r.width), t = start + (px - L) / (W - L - R) * 86400;
+    let p = curve[0]; for (const c of curve) if (Math.abs(c.t + 150 - t) < Math.abs(p.t + 150 - t)) p = c;
+    const cx = x(p.t + 150);
+    q('#cross').setAttribute('visibility', 'visible'); q('#cx').setAttribute('x1', cx); q('#cx').setAttribute('x2', cx);
+    q('#cp').setAttribute('cx', cx); q('#cp').setAttribute('cy', y(p.pv)); q('#cc').setAttribute('cx', cx); q('#cc').setAttribute('cy', y(p.load));
+    tip.innerHTML = tipHTML(prTime(new Date(p.t * 1000)), [['Producción', kw(p.pv), 'var(--s-prod)'], ['Consumo', kw(p.load), 'var(--s-cons)'], ['Batería', p.soc + '%', 'transparent']]);
+    tip.hidden = false; const left = cx / W * r.width; tip.style.left = Math.min(Math.max(left + 12, 0), r.width - tip.offsetWidth) + 'px'; tip.style.top = '8px';
+  };
+  q('#hit').addEventListener('pointermove', move); q('#hit').addEventListener('pointerdown', move);
+  q('#hit').addEventListener('pointerleave', () => { tip.hidden = true; q('#cross').setAttribute('visibility', 'hidden'); });
+}
+function drawDays(days) {
+  const box = $('daysChart');
+  if (days.length < 2) {
+    box.innerHTML = '<p class="empty">Esta comparación se llena sola: cada día que pase aparece un par de barras nuevo. Hoy es el primer día registrado.</p>';
+  } else {
+    const W = box.clientWidth || 600, H = 220, L = 50, R = 6, T = 10, B = 26;
+    const n = days.length, gw = (W - L - R) / n, bw = Math.max(2, Math.min(18, (gw - 6) / 2));
+    const maxV = niceMax(Math.max(...days.map(d => Math.max(d.pv, d.load)), 1)), y = v => T + (1 - v / maxV) * (H - T - B);
+    const bar = (x0, v, c) => { const top = y(v), h = y(0) - top, r = Math.min(4, bw / 2, h);
+      return h <= 0 ? '' : `<path d="M${x0} ${y(0)} V${top + r} Q${x0} ${top} ${x0 + r} ${top} H${x0 + bw - r} Q${x0 + bw} ${top} ${x0 + bw} ${top + r} V${y(0)} Z" fill="${c}"/>`; };
+    const every = Math.ceil(n / 8);
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Producido y consumido por día">
+      ${[0, .5, 1].map(f => f * maxV).map(v => `<line class="gridl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v} kWh</text>`).join('')}
+      ${days.map((d, i) => { const gx = L + i * gw + (gw - bw * 2 - 2) / 2;
+        return bar(gx, d.pv, 'var(--s-prod)') + bar(gx + bw + 2, d.load, 'var(--s-cons)')
+          + (i % every === 0 || i === n - 1 ? `<text class="axis" x="${gx + bw + 1}" y="${H - 6}" text-anchor="middle">${+d.day.slice(8)}</text>` : '')
+          + `<rect data-i="${i}" x="${L + i * gw}" y="0" width="${gw}" height="${H - B}" fill="transparent"/>`; }).join('')}
+    </svg><div class="tip" id="dtip" hidden></div>`;
+    const tip = box.querySelector('#dtip');
+    box.querySelectorAll('rect[data-i]').forEach(el => {
+      const show = () => { const d = days[+el.dataset.i], r = box.getBoundingClientRect();
+        tip.innerHTML = tipHTML(new Date(d.day + 'T12:00').toLocaleDateString('es-PR', { weekday: 'short', day: 'numeric', month: 'short' }),
+          [['Producido', kwh(d.pv), 'var(--s-prod)'], ['Consumido', kwh(d.load), 'var(--s-cons)'], ['A LUMA', kwh(d.export), 'transparent'], ['De LUMA', kwh(d.import), 'transparent']]);
+        tip.hidden = false; const cx = (+el.getAttribute('x') + gw / 2) / W * r.width;
+        tip.style.left = Math.min(Math.max(cx - tip.offsetWidth / 2, 0), r.width - tip.offsetWidth) + 'px'; tip.style.top = '6px'; };
+      el.addEventListener('pointerenter', show); el.addEventListener('pointerdown', show); el.addEventListener('pointerleave', () => tip.hidden = true);
+    });
+  }
+  $('daysTable').innerHTML = `<table><thead><tr><th>Día</th><th>Producido</th><th>Consumido</th><th>A LUMA</th><th>De LUMA</th></tr></thead><tbody>${
+    days.slice().reverse().map(d => `<tr><td>${d.day}</td><td>${kwh(d.pv)}</td><td>${kwh(d.load)}</td><td>${kwh(d.export)}</td><td>${kwh(d.import)}</td></tr>`).join('')}</tbody></table>`;
+}
+async function loadHistory() {
+  try { HIST = await api('/api/history?days=31'); renderToday(HIST.days, HIST.curve); drawCurve(HIST.curve, HIST.day); drawDays(HIST.days.slice(-30)); } catch (e) {}
+}
+let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => HIST && (drawCurve(HIST.curve, HIST.day), drawDays(HIST.days.slice(-30))), 150); });
+
+/* pestañas: marca la sección visible */
+const secs = ['resumen', 'analisis', 'control'];
+addEventListener('scroll', () => {
+  let cur = 'resumen'; for (const id of secs) if ($(id).getBoundingClientRect().top < 140) cur = id;
+  document.querySelectorAll('nav.tabs a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + cur));
+}, { passive: true });
+
+/* =========================================================
+   Confirmación, controles y automatizaciones
+   ========================================================= */
+function ask(text, action) { pending = action; $('confirmText').textContent = text; $('confirm').hidden = false; $('confirmYes').focus(); }
 $('confirmNo').onclick = () => { pending = null; $('confirm').hidden = true; renderControls(); };
 $('confirmYes').onclick = async () => {
   $('confirmYes').disabled = true;
@@ -221,12 +718,10 @@ $('confirmYes').onclick = async () => {
 };
 async function setCtl(name, value) { const r = await api('/api/control', { name, value }); CONTROLS = r.controls; }
 const say = v => v === 1 ? 'activado' : v === 0 ? 'desactivado' : v;
-
 function renderControls() {
   if (!META || !Object.keys(CONTROLS).length) return;
   const C = META.controls, el = $('controls'); el.className = '';
-  const bits = Object.keys(C).filter(k => C[k].kind === 'bit' && k in CONTROLS);
-  const ints = Object.keys(C).filter(k => C[k].kind === 'int' && k in CONTROLS);
+  const bits = Object.keys(C).filter(k => C[k].kind === 'bit' && k in CONTROLS), ints = Object.keys(C).filter(k => C[k].kind === 'int' && k in CONTROLS);
   let html = '<div class="group"><h3>Modos</h3>' + bits.map(k =>
     `<div class="row"><label id="l-${k}">${C[k].label}</label><div class="ctl"><button class="switch" role="switch" aria-labelledby="l-${k}" aria-checked="${!!CONTROLS[k]}" data-bit="${k}"></button></div></div>`).join('') + '</div>';
   html += '<div class="group"><h3>Límites y tasas</h3>' + ints.map(k =>
@@ -238,16 +733,13 @@ function renderControls() {
       return `<span>Horario ${i}</span><div class="ctl"><input id="c-${a}" type="time" value="${CONTROLS[a]}" aria-label="${C[a].label}"> a <input id="c-${b}" type="time" value="${CONTROLS[b]}" aria-label="${C[b].label}"><button data-slot="${grp}_slot${i}">Guardar</button></div>`;
     }).join('') + '</div></div>';
   }
-  el.innerHTML = html;
-  applyReadOnly();
+  el.innerHTML = html; applyReadOnly();
 }
-
 $('controls').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const C = META.controls;
   if (b.dataset.bit || b.dataset.int) {
-    const k = b.dataset.bit || b.dataset.int;
-    const v = b.dataset.bit ? (CONTROLS[k] ? 0 : 1) : +$('c-' + k).value;
+    const k = b.dataset.bit || b.dataset.int, v = b.dataset.bit ? (CONTROLS[k] ? 0 : 1) : +$('c-' + k).value;
     ask(`¿Cambiar “${C[k].label}” a ${say(v)}?`, async () => { await setCtl(k, v); toast('Aplicado en el inversor'); });
   }
   if (b.dataset.slot) {
@@ -255,22 +747,18 @@ $('controls').addEventListener('click', e => {
     ask(`¿Guardar horario ${a} a ${z}?`, async () => { await setCtl(s + '_start', a); await setCtl(s + '_end', z); toast('Horario guardado'); });
   }
 });
-
-// ---------- automatizaciones
 function ruleText(r) {
   const t = r.trigger, C = META.controls;
   const when = t.type === 'time' ? `a las ${t.at}` : t.type.startsWith('grid') ? META.triggers[t.type].toLowerCase() : `${META.triggers[t.type].toLowerCase()} ${t.value}`;
-  const what = r.actions.map(a => `${C[a.control].label}: ${C[a.control].kind === 'bit' ? (a.value ? 'activar' : 'desactivar') : a.value}`).join(', ');
-  return `${when} → ${what}`;
+  return `${when} → ` + r.actions.map(a => `${C[a.control].label}: ${C[a.control].kind === 'bit' ? (a.value ? 'activar' : 'desactivar') : a.value}`).join(', ');
 }
 async function loadRules() {
   const j = await api('/api/automations');
-  $('rules').innerHTML = j.rules.length ? j.rules.map(r => `<div class="rule ${r.enabled ? '' : 'off'}"><div><b>${r.name}</b><div class="d">${ruleText(r)}</div></div>
-    <div class="ctl" style="display:flex;gap:6px"><button class="switch" role="switch" aria-label="Activar regla ${r.name}" aria-checked="${r.enabled}" data-toggle="${r.id}"></button><button data-del="${r.id}">Borrar</button></div></div>`).join('')
-    : '<p class="empty">No hay reglas todavía. Crea la primera abajo, por ejemplo cargar la batería desde la red a la 1:00 AM.</p>';
-  $('rules')._rules = j.rules;
-  applyReadOnly();
-  $('log').innerHTML = j.history.length ? j.history.map(h => `<span class="${h.ok ? '' : 'e'}">${h.ts.replace('T', ' ')} · ${h.rule} · ${h.control}=${h.value}${h.ok ? '' : ' · ' + h.error}</span>`).join('') : '<span class="empty">Aún no se ha ejecutado ninguna regla.</span>';
+  $('rules').innerHTML = j.rules.length ? j.rules.map(r => `<div class="rule ${r.enabled ? '' : 'off'}"><div><b>${esc(r.name)}</b><div class="d">${esc(ruleText(r))}</div></div>
+    <div class="ctl"><button class="switch" role="switch" aria-label="Activar regla ${esc(r.name)}" aria-checked="${r.enabled}" data-toggle="${r.id}"></button><button data-del="${r.id}">Borrar</button></div></div>`).join('')
+    : '<p class="empty">No hay reglas todavía. Crea la primera abajo.</p>';
+  $('rules')._rules = j.rules; applyReadOnly();
+  $('log').innerHTML = j.history.length ? j.history.map(h => `<span class="${h.ok ? '' : 'e'}">${h.ts.replace('T', ' ')} · ${esc(h.rule)} · ${h.control}=${h.value}${h.ok ? '' : ' · ' + esc(h.error)}</span>`).join('') : '<span class="empty">Aún no se ha ejecutado ninguna regla.</span>';
 }
 $('rules').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -298,12 +786,13 @@ $('addRule').addEventListener('submit', async e => {
 
 async function tick() { try { render(await api('/api/status')); } catch (e) { render({ error: 'servidor no disponible', inputs: {} }); } }
 (async () => {
+  initHouse(); greet();
   META = await api('/api/meta');
   $('rTrig').innerHTML = Object.entries(META.triggers).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   $('rCtl').innerHTML = Object.entries(META.controls).map(([k, c]) => `<option value="${k}">${c.label}</option>`).join('');
   renderValueInput();
-  await tick(); loadRules();
-  setInterval(tick, 5000); setInterval(loadRules, 30000);
+  await tick(); loadRules(); loadHistory();
+  setInterval(tick, 5000); setInterval(loadRules, 30000); setInterval(loadHistory, 60000); setInterval(greet, 600000);
 })();
 </script>
 </body>

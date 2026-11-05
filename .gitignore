@@ -1,6 +1,10 @@
-config.json
-automations.json
-__pycache__/
-*.tmp
 *.log
+*.tmp
 .claude/
+__pycache__/
+automations.json
+config.json
+deploy/
+deploy/solar-auth.conf
+deploy/solar-credenciales.txt
+history.db

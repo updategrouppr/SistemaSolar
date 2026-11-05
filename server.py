@@ -4,6 +4,7 @@
   python server.py          → http://127.0.0.1:8787
 """
 import asyncio
+import hashlib
 import hmac
 import json
 import logging
@@ -11,9 +12,11 @@ import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
 from luxpower import ROOT, LuxClient, load_config, save_config
 from luxpower.discover import find_dongle
+from luxpower.history import History
 from luxpower.automations import TRIGGERS, Automations
 from luxpower.registers import CONTROLS, decode_controls, decode_inputs
 
@@ -22,6 +25,7 @@ cfg = load_config()
 loop = asyncio.new_event_loop()
 client = LuxClient(cfg["host"], cfg["port"], cfg["datalog"], cfg["serial"])
 autos = Automations(os.path.join(ROOT, "automations.json"))
+history = History(os.path.join(ROOT, "history.db"))
 state = {"inputs": {}, "controls": {}, "error": None, "updated": 0, "controls_updated": 0}
 
 
@@ -47,6 +51,10 @@ async def poll_forever():
                 state["controls_updated"] = last_hold = time.time()
             state["updated"], state["error"] = time.time(), None
             failures = 0
+            try:
+                await asyncio.to_thread(history.record, state["inputs"])
+            except Exception as e:
+                log.warning("No se pudo guardar el historial: %s", e)
             await autos.run(client, state["inputs"])
         except Exception as e:
             state["error"] = str(e)
@@ -73,6 +81,13 @@ async def apply_control(name, value):
     return v
 
 
+# Página de entrada para visitas por la web (diseño Update Group): static/login.html
+
+
+def _view_cookie():
+    return hmac.new(cfg["token"].encode() or b"lux", ("view:" + cfg["view_password"]).encode(), hashlib.sha256).hexdigest()
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -92,11 +107,34 @@ class Handler(BaseHTTPRequestHandler):
         sent = self.headers.get("X-Token", "").strip().strip("\"'")
         return hmac.compare_digest(sent, cfg["token"])
 
+    def _needs_login(self):
+        """Solo se pide contraseña cuando la visita llega por la web (Caddy agrega X-Forwarded-For)."""
+        if not cfg["view_password"] or not self.headers.get("X-Forwarded-For"):
+            return False
+        for part in self.headers.get("Cookie", "").split(";"):
+            k, _, v = part.strip().partition("=")
+            if k == "lux_view" and hmac.compare_digest(v, _view_cookie()):
+                return False
+        return True
+
+    def _login_page(self, error=False):
+        msg = '<p class="err" role="alert">Esa no es la contraseña. Intenta de nuevo.</p>' if error else ""
+        with open(os.path.join(ROOT, "static", "login.html"), encoding="utf-8") as f:
+            page = f.read().replace("{msg}", msg)
+        self._send(401 if error else 200, page.encode(), "text/html; charset=utf-8")
+
     def _body(self):
         n = int(self.headers.get("Content-Length", 0))
         return json.loads(self.rfile.read(n) or b"{}")
 
     def do_GET(self):
+        if self.path == "/mark.png":
+            with open(os.path.join(ROOT, "static", "mark.png"), "rb") as f:
+                return self._send(200, f.read(), "image/png")
+        if self._needs_login():
+            if self.path.startswith("/api/"):
+                return self._send(401, {"error": "inicia sesión"})
+            return self._login_page()
         if self.path in ("/", "/index.html"):
             with open(os.path.join(ROOT, "static", "index.html"), "rb") as f:
                 return self._send(200, f.read(), "text/html; charset=utf-8")
@@ -106,6 +144,12 @@ class Handler(BaseHTTPRequestHandler):
                 "serial": client.serial, "datalog": client.datalog,
                 "needs_token": bool(cfg["token"]),
             })
+        if self.path.startswith("/api/history"):
+            from urllib.parse import urlparse
+            q = parse_qs(urlparse(self.path).query)
+            day = q.get("day", [time.strftime("%Y-%m-%d")])[0]
+            n = min(int(q.get("days", ["30"])[0]), 365)
+            return self._send(200, {"day": day, "curve": history.day_curve(day), "days": history.days(n)})
         if self.path == "/api/meta":
             return self._send(200, {"controls": CONTROLS, "triggers": TRIGGERS})
         if self.path == "/api/automations":
@@ -113,6 +157,19 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, {"error": "no encontrado"})
 
     def do_POST(self):
+        if self.path == "/login":
+            n = int(self.headers.get("Content-Length", 0))
+            sent = parse_qs(self.rfile.read(n).decode(errors="replace")).get("password", [""])[0].strip()
+            if cfg["view_password"] and hmac.compare_digest(sent.lower(), cfg["view_password"].lower()):
+                self.send_response(303)
+                self.send_header("Location", "./")
+                self.send_header("Set-Cookie", f"lux_view={_view_cookie()}; Max-Age=31536000; Path=/; HttpOnly; Secure; SameSite=Lax")
+                self.end_headers()
+                return
+            time.sleep(1)
+            return self._login_page(error=True)
+        if self._needs_login():
+            return self._send(401, {"error": "inicia sesión"})
         if not self._authorized():
             return self._send(401, {"error": "token inválido"})
         try:
