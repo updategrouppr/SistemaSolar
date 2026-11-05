@@ -206,6 +206,7 @@ form.add .r { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 form.add input[type=text] { flex: 1 1 180px; }
 .log { font-size: .8rem; color: var(--muted); display: grid; gap: 3px; max-height: 180px; overflow: auto; font-variant-numeric: tabular-nums; }
 .log .e { color: var(--warn); }
+.confirm input { min-width: 0; width: 13em; }
 .confirm { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 10;
   background: #fff; border-top: 2px solid var(--orange); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; box-shadow: 0 -12px 30px -14px rgba(0,0,0,.3); }
 .toast { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); z-index: 11;
@@ -361,13 +362,9 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; }
 
   <!-- ===== Control ===== -->
   <div class="section-head" id="control"><div><span class="eyebrow">Control</span><h2 style="margin-top:6px">Ajustes y automatizaciones</h2></div></div>
-  <div class="tokenrow" id="tokenBox" hidden>
-    <label for="token">Token para hacer cambios</label><input id="token" type="password" autocomplete="off" autocapitalize="none">
-  </div>
   <div class="cols">
     <section class="card" aria-labelledby="h-ctl">
       <h2 id="h-ctl">Ajustes del inversor</h2>
-      <p class="ro" id="roNote" hidden>Solo lectura. Escribe el token arriba para poder cambiar ajustes y reglas.</p>
       <div id="controls" class="empty">Leyendo ajustes del inversor…</div>
     </section>
     <section class="card" aria-labelledby="h-auto">
@@ -390,6 +387,7 @@ footer { text-align: center; color: var(--muted); font-size: .8rem; }
 
 <div class="confirm" id="confirm" hidden>
   <span id="confirmText"></span>
+  <input id="cfPw" type="password" placeholder="Contraseña de ajustes" aria-label="Contraseña de ajustes" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" hidden>
   <button class="primary" id="confirmYes">Aplicar</button>
   <button id="confirmNo">Cancelar</button>
 </div>
@@ -531,14 +529,11 @@ function setBattery(soc) {
 /* =========================================================
    Token, API
    ========================================================= */
-let NEEDS_TOKEN = false, TYPED = '';
-function token() { try { return localStorage.getItem('luxToken') || TYPED; } catch { return TYPED; } }
-$('token').addEventListener('input', e => { TYPED = e.target.value.replace(/[\s"'“”]/g, ''); try { localStorage.setItem('luxToken', TYPED); } catch {} applyReadOnly(); });
-const readOnly = () => NEEDS_TOKEN && !token();
-function applyReadOnly() {
-  const ro = readOnly(); $('roNote').hidden = !ro;
-  document.querySelectorAll('#controls button, #controls input, #rules button, #addRule button, #addRule input, #addRule select').forEach(el => el.disabled = ro);
-}
+let PW = '';
+function token() { try { return sessionStorage.getItem('luxPw') || PW; } catch { return PW; } }
+function setToken(v) { PW = v; try { v ? sessionStorage.setItem('luxPw', v) : sessionStorage.removeItem('luxPw'); } catch {} }
+try { localStorage.removeItem('luxToken'); } catch {}
+function applyReadOnly() {}
 function toast(msg, err) {
   const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.hidden = false;
   clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, 3500);
@@ -560,9 +555,6 @@ function render(s) {
   st.lastElementChild.textContent = live ? 'En vivo' : 'Sin conexión con el inversor';
   $('updated').textContent = s.updated ? prTime(new Date(s.updated * 1000)) : '';
   $('ids').textContent = `inversor ${s.serial || '?'}`;
-  $('tokenBox').hidden = !s.needs_token;
-  if (NEEDS_TOKEN !== !!s.needs_token) { NEEDS_TOKEN = !!s.needs_token; applyReadOnly(); }
-  if ($('token').value === '' && token()) $('token').value = token();
   const d = s.inputs; if (!d || d.soc === undefined) return;
 
   setFlow('fPv', d.p_pv); setFlow('fGrid', d.p_grid, d.p_grid < 0);
@@ -827,12 +819,28 @@ addEventListener('scroll', () => {
 /* =========================================================
    Confirmación, controles y automatizaciones
    ========================================================= */
-function ask(text, action) { pending = action; $('confirmText').textContent = text; $('confirm').hidden = false; $('confirmYes').focus(); }
+function ask(text, action) {
+  pending = action; $('confirmText').textContent = text; $('confirm').hidden = false;
+  const need = !token(); $('cfPw').hidden = !need; $('cfPw').value = '';
+  (need ? $('cfPw') : $('confirmYes')).focus();
+}
 $('confirmNo').onclick = () => { pending = null; $('confirm').hidden = true; renderControls(); };
+$('cfPw').addEventListener('keydown', e => { if (e.key === 'Enter') $('confirmYes').click(); });
 $('confirmYes').onclick = async () => {
+  if (!$('cfPw').hidden) {
+    const v = $('cfPw').value.trim();
+    if (!v) { toast('Escribe la contraseña de ajustes', true); $('cfPw').focus(); return; }
+    setToken(v);
+  }
   $('confirmYes').disabled = true;
-  try { await pending(); } catch (e) { toast('No se aplicó: ' + e.message, true); }
-  $('confirmYes').disabled = false; $('confirm').hidden = true; pending = null; renderControls();
+  try { await pending(); $('confirm').hidden = true; pending = null; }
+  catch (e) {
+    if (/contraseña/.test(e.message)) {          // contraseña equivocada: se queda abierta para reintentar
+      setToken(''); $('cfPw').hidden = false; $('cfPw').value = ''; $('cfPw').focus();
+      toast('Contraseña de ajustes incorrecta', true);
+    } else { toast('No se aplicó: ' + e.message, true); $('confirm').hidden = true; pending = null; }
+  }
+  $('confirmYes').disabled = false; renderControls();
 };
 async function setCtl(name, value) { const r = await api('/api/control', { name, value }); CONTROLS = r.controls; }
 const say = v => v === 1 ? 'activado' : v === 0 ? 'desactivado' : v;
@@ -880,11 +888,9 @@ async function loadRules() {
 }
 $('rules').addEventListener('click', async e => {
   const b = e.target.closest('button'); if (!b) return;
-  try {
-    if (b.dataset.del) await api('/api/automations/delete', { id: b.dataset.del });
-    if (b.dataset.toggle) { const r = $('rules')._rules.find(x => x.id === b.dataset.toggle); await api('/api/automations', { ...r, enabled: !r.enabled }); }
-    loadRules();
-  } catch (err) { toast(err.message, true); }
+  const r = $('rules')._rules.find(x => x.id === (b.dataset.del || b.dataset.toggle)); if (!r) return;
+  if (b.dataset.del) ask(`¿Borrar la regla “${r.name}”?`, async () => { await api('/api/automations/delete', { id: r.id }); toast('Regla borrada'); loadRules(); });
+  if (b.dataset.toggle) ask(`¿${r.enabled ? 'Apagar' : 'Activar'} la regla “${r.name}”?`, async () => { await api('/api/automations', { ...r, enabled: !r.enabled }); loadRules(); });
 });
 function renderValueInput() {
   const c = META.controls[$('rCtl').value];
@@ -898,8 +904,7 @@ $('addRule').addEventListener('submit', async e => {
   const type = $('rTrig').value;
   const rule = { name: $('rName').value, trigger: type === 'time' ? { type, at: $('rAt').value } : type.startsWith('grid') ? { type } : { type, value: +$('rVal').value },
     actions: [{ control: $('rCtl').value, value: $('rSet').value }], cooldown_min: 30 };
-  try { await api('/api/automations', rule); $('rName').value = ''; toast('Regla agregada'); loadRules(); }
-  catch (err) { toast('Regla inválida: ' + err.message, true); }
+  ask(`¿Agregar la regla “${rule.name}”?`, async () => { await api('/api/automations', rule); $('rName').value = ''; toast('Regla agregada'); loadRules(); });
 });
 
 async function tick() { try { render(await api('/api/status')); } catch (e) { render({ error: 'servidor no disponible', inputs: {} }); } }

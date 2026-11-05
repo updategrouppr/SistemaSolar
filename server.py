@@ -171,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
         if self._needs_login():
             return self._send(401, {"error": "inicia sesión"})
         if not self._authorized():
-            return self._send(401, {"error": "token inválido"})
+            return self._send(401, {"error": "contraseña de ajustes incorrecta"})
         try:
             body = self._body()
             if self.path == "/api/control":
