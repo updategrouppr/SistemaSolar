@@ -1,0 +1,6 @@
+config.json
+automations.json
+__pycache__/
+*.tmp
+*.log
+.claude/

@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LuxPower Control</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: panel de instrumentos — franja de flujo de energía arriba, luego ajustes y automatizaciones en dos columnas */
+:root {
+  --bg: #f3f5f4; --panel: #ffffff; --line: #d9dfdd; --fg: #17201e; --muted: #5d6b67;
+  --sun: #d98a00; --bat: #1f9d63; --grid: #2f6fd1; --load: #7b4fc9;
+  --warn: #c2410c; --accent: #d98a00; --accent-fg: #1a1200;
+  --font-ui: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1413; --panel: #171e1c; --line: #2a3431; --fg: #e6ecea; --muted: #93a29d;
+  --sun: #f2a516; --bat: #34c283; --grid: #5b93ea; --load: #a582e6; --warn: #f97316;
+  --accent: #f2a516; --accent-fg: #1a1200; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1413; --panel: #171e1c; --line: #2a3431; --fg: #e6ecea; --muted: #93a29d;
+  --sun: #f2a516; --bat: #34c283; --grid: #5b93ea; --load: #a582e6; --warn: #f97316;
+  --accent: #f2a516; --accent-fg: #1a1200; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-ui); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 120px; display: grid; gap: 20px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; justify-content: space-between; }
+h1 { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: .01em; }
+h2 { margin: 0 0 12px; font-size: .78rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 600; }
+.meta { color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--line); font-weight: 600; font-size: .82rem; color: var(--fg); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.ok .dot { background: var(--bat); } .bad .dot { background: var(--warn); }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+
+/* Flujo de energía */
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 4px; border-top: 3px solid var(--c); }
+.tile .k { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.tile .v { font-family: var(--font-num); font-size: 1.9rem; font-weight: 600; color: var(--fg); }
+.tile .v small { font-size: .95rem; color: var(--muted); font-weight: 400; }
+.tile .s { font-size: .85rem; color: var(--muted); }
+.socbar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.socbar i { display: block; height: 100%; background: var(--bat); width: 0; transition: width .6s; }
+.today { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: .88rem; color: var(--muted); }
+.today b { color: var(--fg); font-family: var(--font-num); font-weight: 600; }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.group { display: grid; gap: 2px; }
+.group h3 { margin: 6px 0 4px; font-size: .95rem; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row label { min-width: 0; }
+.row .ctl { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+input, select, button { font: inherit; color: var(--fg); }
+input[type=number], input[type=time], input[type=text], input[type=password], select {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+input[type=number] { width: 76px; font-family: var(--font-num); }
+button { cursor: pointer; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); padding: 6px 12px; font-weight: 600; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .5; cursor: default; }
+.switch { position: relative; width: 44px; height: 24px; border-radius: 12px; background: var(--line); border: 0; padding: 0; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--panel); transition: transform .2s; }
+.switch[aria-checked="true"] { background: var(--bat); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.slots { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; font-size: .9rem; }
+.slots .ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+.rule { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.rule .d { color: var(--muted); font-size: .85rem; }
+.rule.off { opacity: .55; }
+form.add { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+form.add .r { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+form.add input[type=text] { flex: 1 1 180px; }
+.log { font-family: var(--font-num); font-size: .8rem; color: var(--muted); display: grid; gap: 3px; max-height: 180px; overflow: auto; }
+.log .e { color: var(--warn); }
+.empty { color: var(--muted); font-size: .9rem; }
+.ro { margin: 0; padding: 8px 12px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); font-size: .88rem; }
+
+/* Barra de confirmación */
+.confirm { position: fixed; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: var(--panel); border-top: 2px solid var(--accent); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; box-shadow: 0 -6px 20px rgba(0,0,0,.12); }
+.toast { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-weight: 600; max-width: calc(100% - 32px); }
+.toast.err { background: var(--warn); color: #fff; }
+
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .tile .v { font-size: 1.5rem; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>LuxPower Control</h1>
+      <div class="meta"><span id="state" class="pill"><span class="dot"></span><span>Conectando…</span></span>
+        <span id="ids"></span><span id="updated"></span></div>
+    </div>
+    <div class="meta" id="tokenBox" hidden>
+      <label for="token">Token para hacer cambios</label><input id="token" type="password" autocomplete="off">
+    </div>
+  </header>
+
+  <div class="flow">
+    <div class="tile" style="--c: var(--sun)"><span class="k">Solar</span><span class="v num" id="pv">–</span><span class="s" id="pvs">&nbsp;</span></div>
+    <div class="tile" style="--c: var(--bat)"><span class="k">Batería</span><span class="v num" id="soc">–</span>
+      <div class="socbar"><i id="socbar"></i></div><span class="s" id="bats">&nbsp;</span></div>
+    <div class="tile" style="--c: var(--grid)"><span class="k">Red</span><span class="v num" id="grid">–</span><span class="s" id="grids">&nbsp;</span></div>
+    <div class="tile" style="--c: var(--load)"><span class="k">Consumo</span><span class="v num" id="load">–</span><span class="s" id="loads">&nbsp;</span></div>
+  </div>
+  <div class="today" id="today"></div>
+
+  <div class="cols">
+    <section class="card" aria-labelledby="h-ctl">
+      <h2 id="h-ctl">Ajustes del inversor</h2>
+      <p class="ro" id="roNote" hidden>Solo lectura. Escribe el token arriba para poder cambiar ajustes y reglas.</p>
+      <div id="controls" class="empty">Leyendo ajustes del inversor…</div>
+    </section>
+
+    <section class="card" aria-labelledby="h-auto">
+      <h2 id="h-auto">Automatizaciones</h2>
+      <div id="rules"></div>
+      <form class="add" id="addRule">
+        <div class="r"><input id="rName" type="text" placeholder="Nombre (ej. Cargar de madrugada)" required></div>
+        <div class="r">
+          <label for="rTrig">Cuando</label>
+          <select id="rTrig"></select>
+          <input id="rAt" type="time" value="01:00">
+          <input id="rVal" type="number" value="20" hidden>
+        </div>
+        <div class="r">
+          <label for="rCtl">Entonces</label>
+          <select id="rCtl"></select>
+          <span id="rValBox"></span>
+        </div>
+        <div class="r"><button class="primary" type="submit">Agregar regla</button></div>
+      </form>
+      <h2>Historial</h2>
+      <div class="log" id="log"><span class="empty">Aún no se ha ejecutado ninguna regla.</span></div>
+    </section>
+  </div>
+</div>
+
+<div class="confirm" id="confirm" hidden>
+  <span id="confirmText"></span>
+  <button class="primary" id="confirmYes">Aplicar</button>
+  <button id="confirmNo">Cancelar</button>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let META = null, CONTROLS = {}, pending = null;
+const fmtW = w => Math.abs(w) >= 1000 ? (w / 1000).toFixed(2) + '<small> kW</small>' : Math.round(w) + '<small> W</small>';
+
+function token() { try { return localStorage.getItem('luxToken') || TYPED; } catch { return TYPED; } }
+let NEEDS_TOKEN = false, TYPED = '';
+$('token').addEventListener('input', e => { TYPED = e.target.value.replace(/[\s"'“”]/g, ''); try { localStorage.setItem('luxToken', TYPED); } catch {} applyReadOnly(); });
+const readOnly = () => NEEDS_TOKEN && !token();
+function applyReadOnly() {
+  const ro = readOnly();
+  $('roNote').hidden = !ro;
+  document.querySelectorAll('#controls button, #controls input, #rules button, #addRule button, #addRule input, #addRule select')
+    .forEach(el => el.disabled = ro);
+}
+
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); t.hidden = false;
+  clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, 3500);
+}
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Token': token() }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+function render(s) {
+  const st = $('state');
+  const live = s.connected && !s.error && s.updated;
+  st.className = 'pill ' + (live ? 'ok' : 'bad');
+  st.lastElementChild.textContent = s.error ? 'Sin respuesta: ' + s.error : (s.inputs.state || (s.connected ? 'Conectado' : 'Desconectado'));
+  $('ids').textContent = `${s.host} · inversor ${s.serial || '?'} · dongle ${s.datalog || '?'}`;
+  $('updated').textContent = s.updated ? 'actualizado ' + new Date(s.updated * 1000).toLocaleTimeString() : '';
+  $('tokenBox').hidden = !s.needs_token;
+  if (NEEDS_TOKEN !== !!s.needs_token) { NEEDS_TOKEN = !!s.needs_token; applyReadOnly(); }
+  if ($('token').value === '' && token()) $('token').value = token();
+  const d = s.inputs; if (!d || d.soc === undefined) return;
+  $('pv').innerHTML = fmtW(d.p_pv);
+  $('pvs').textContent = `PV1 ${d.p_pv_1} W · PV2 ${d.p_pv_2} W · PV3 ${d.p_pv_3} W`;
+  $('soc').innerHTML = d.soc + '<small> %</small>';
+  $('socbar').style.width = d.soc + '%';
+  $('bats').textContent = `${d.v_bat} V · ${d.p_battery > 0 ? 'cargando ' + d.p_battery + ' W' : d.p_battery < 0 ? 'descargando ' + -d.p_battery + ' W' : 'en reposo'}${d.t_bat !== undefined ? ' · ' + d.t_bat + ' °C' : ''}`;
+  $('grid').innerHTML = fmtW(Math.abs(d.p_grid));
+  $('grids').textContent = `${d.p_grid > 0 ? 'importando' : d.p_grid < 0 ? 'exportando' : 'sin flujo'} · ${d.v_ac} V · ${d.f_ac} Hz`;
+  $('load').innerHTML = fmtW(d.p_load);
+  $('loads').textContent = `estimado · EPS ${d.p_eps} W`;
+  $('today').innerHTML = [['Solar hoy', d.e_pv_day], ['Cargado', d.e_chg_day], ['Descargado', d.e_dischg_day],
+    ['Importado', d.e_to_user_day], ['Exportado', d.e_to_grid_day]].map(([k, v]) => `<span>${k} <b>${v} kWh</b></span>`).join('')
+    + (d.t_inner !== undefined ? `<span>Inversor <b>${d.t_inner} °C</b></span>` : '');
+  if (s.controls_updated && JSON.stringify(s.controls) !== JSON.stringify(CONTROLS)) { CONTROLS = s.controls; renderControls(); }
+}
+
+function ask(text, action) {
+  pending = action;
+  $('confirmText').textContent = text;
+  $('confirm').hidden = false; $('confirmYes').focus();
+}
+$('confirmNo').onclick = () => { pending = null; $('confirm').hidden = true; renderControls(); };
+$('confirmYes').onclick = async () => {
+  $('confirmYes').disabled = true;
+  try { await pending(); } catch (e) { toast('No se aplicó: ' + e.message, true); }
+  $('confirmYes').disabled = false; $('confirm').hidden = true; pending = null; renderControls();
+};
+async function setCtl(name, value) { const r = await api('/api/control', { name, value }); CONTROLS = r.controls; }
+const say = v => v === 1 ? 'activado' : v === 0 ? 'desactivado' : v;
+
+function renderControls() {
+  if (!META || !Object.keys(CONTROLS).length) return;
+  const C = META.controls, el = $('controls'); el.className = '';
+  const bits = Object.keys(C).filter(k => C[k].kind === 'bit' && k in CONTROLS);
+  const ints = Object.keys(C).filter(k => C[k].kind === 'int' && k in CONTROLS);
+  let html = '<div class="group"><h3>Modos</h3>' + bits.map(k =>
+    `<div class="row"><label id="l-${k}">${C[k].label}</label><div class="ctl"><button class="switch" role="switch" aria-labelledby="l-${k}" aria-checked="${!!CONTROLS[k]}" data-bit="${k}"></button></div></div>`).join('') + '</div>';
+  html += '<div class="group"><h3>Límites y tasas</h3>' + ints.map(k =>
+    `<div class="row"><label for="c-${k}">${C[k].label}</label><div class="ctl"><input id="c-${k}" type="number" min="${C[k].min}" max="${C[k].max}" step="${C[k].scale ? 1 / C[k].scale : 1}" value="${CONTROLS[k]}"><span>${C[k].unit}</span><button data-int="${k}">Guardar</button></div></div>`).join('') + '</div>';
+  for (const [grp, lbl] of [['ac_charge', 'Horario de carga desde la red'], ['charge_priority', 'Horario de prioridad de carga'], ['forced_discharge', 'Horario de descarga forzada']]) {
+    if (!(grp + '_slot1_start' in CONTROLS)) continue;
+    html += `<div class="group"><h3>${lbl}</h3><div class="slots">` + [1, 2, 3].map(i => {
+      const a = `${grp}_slot${i}_start`, b = `${grp}_slot${i}_end`;
+      return `<span>Horario ${i}</span><div class="ctl"><input id="c-${a}" type="time" value="${CONTROLS[a]}" aria-label="${C[a].label}"> a <input id="c-${b}" type="time" value="${CONTROLS[b]}" aria-label="${C[b].label}"><button data-slot="${grp}_slot${i}">Guardar</button></div>`;
+    }).join('') + '</div></div>';
+  }
+  el.innerHTML = html;
+  applyReadOnly();
+}
+
+$('controls').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const C = META.controls;
+  if (b.dataset.bit || b.dataset.int) {
+    const k = b.dataset.bit || b.dataset.int;
+    const v = b.dataset.bit ? (CONTROLS[k] ? 0 : 1) : +$('c-' + k).value;
+    ask(`¿Cambiar “${C[k].label}” a ${say(v)}?`, async () => { await setCtl(k, v); toast('Aplicado en el inversor'); });
+  }
+  if (b.dataset.slot) {
+    const s = b.dataset.slot, a = $('c-' + s + '_start').value, z = $('c-' + s + '_end').value;
+    ask(`¿Guardar horario ${a} a ${z}?`, async () => { await setCtl(s + '_start', a); await setCtl(s + '_end', z); toast('Horario guardado'); });
+  }
+});
+
+// ---------- automatizaciones
+function ruleText(r) {
+  const t = r.trigger, C = META.controls;
+  const when = t.type === 'time' ? `a las ${t.at}` : t.type.startsWith('grid') ? META.triggers[t.type].toLowerCase() : `${META.triggers[t.type].toLowerCase()} ${t.value}`;
+  const what = r.actions.map(a => `${C[a.control].label}: ${C[a.control].kind === 'bit' ? (a.value ? 'activar' : 'desactivar') : a.value}`).join(', ');
+  return `${when} → ${what}`;
+}
+async function loadRules() {
+  const j = await api('/api/automations');
+  $('rules').innerHTML = j.rules.length ? j.rules.map(r => `<div class="rule ${r.enabled ? '' : 'off'}"><div><b>${r.name}</b><div class="d">${ruleText(r)}</div></div>
+    <div class="ctl" style="display:flex;gap:6px"><button class="switch" role="switch" aria-label="Activar regla ${r.name}" aria-checked="${r.enabled}" data-toggle="${r.id}"></button><button data-del="${r.id}">Borrar</button></div></div>`).join('')
+    : '<p class="empty">No hay reglas todavía. Crea la primera abajo, por ejemplo cargar la batería desde la red a la 1:00 AM.</p>';
+  $('rules')._rules = j.rules;
+  applyReadOnly();
+  $('log').innerHTML = j.history.length ? j.history.map(h => `<span class="${h.ok ? '' : 'e'}">${h.ts.replace('T', ' ')} · ${h.rule} · ${h.control}=${h.value}${h.ok ? '' : ' · ' + h.error}</span>`).join('') : '<span class="empty">Aún no se ha ejecutado ninguna regla.</span>';
+}
+$('rules').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  try {
+    if (b.dataset.del) await api('/api/automations/delete', { id: b.dataset.del });
+    if (b.dataset.toggle) { const r = $('rules')._rules.find(x => x.id === b.dataset.toggle); await api('/api/automations', { ...r, enabled: !r.enabled }); }
+    loadRules();
+  } catch (err) { toast(err.message, true); }
+});
+function renderValueInput() {
+  const c = META.controls[$('rCtl').value];
+  $('rValBox').innerHTML = c.kind === 'bit' ? '<select id="rSet"><option value="1">activar</option><option value="0">desactivar</option></select>'
+    : c.kind === 'time' ? '<input id="rSet" type="time" value="01:00">' : `<input id="rSet" type="number" min="${c.min}" max="${c.max}" value="${c.max}"> ${c.unit}`;
+}
+$('rTrig').onchange = () => { const v = $('rTrig').value; $('rAt').hidden = v !== 'time'; $('rVal').hidden = v === 'time' || v.startsWith('grid'); };
+$('rCtl').onchange = renderValueInput;
+$('addRule').addEventListener('submit', async e => {
+  e.preventDefault();
+  const type = $('rTrig').value;
+  const rule = { name: $('rName').value, trigger: type === 'time' ? { type, at: $('rAt').value } : type.startsWith('grid') ? { type } : { type, value: +$('rVal').value },
+    actions: [{ control: $('rCtl').value, value: $('rSet').value }], cooldown_min: 30 };
+  try { await api('/api/automations', rule); $('rName').value = ''; toast('Regla agregada'); loadRules(); }
+  catch (err) { toast('Regla inválida: ' + err.message, true); }
+});
+
+async function tick() { try { render(await api('/api/status')); } catch (e) { render({ error: 'servidor no disponible', inputs: {} }); } }
+(async () => {
+  META = await api('/api/meta');
+  $('rTrig').innerHTML = Object.entries(META.triggers).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  $('rCtl').innerHTML = Object.entries(META.controls).map(([k, c]) => `<option value="${k}">${c.label}</option>`).join('');
+  renderValueInput();
+  await tick(); loadRules();
+  setInterval(tick, 5000); setInterval(loadRules, 30000);
+})();
+</script>
+</body>
+</html>

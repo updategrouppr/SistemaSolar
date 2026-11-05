@@ -1,0 +1,10 @@
+{
+  "host": "192.168.68.XX",
+  "port": 8000,
+  "datalog": "",
+  "serial": "",
+  "poll_seconds": 10,
+  "web_host": "127.0.0.1",
+  "web_port": 8787,
+  "token": ""
+}
